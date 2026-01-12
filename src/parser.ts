@@ -83,7 +83,11 @@ function durationToMs(value: number, unit: string): number {
 }
 
 function getNextWeekday(weekday: number, referenceDate: Date): Date {
-  const result = new Date(referenceDate);
+  const result = new Date(Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    referenceDate.getUTCDate()
+  ));
   const currentDay = result.getUTCDay();
   let daysToAdd = weekday - currentDay;
   if (daysToAdd <= 0) {
@@ -94,7 +98,11 @@ function getNextWeekday(weekday: number, referenceDate: Date): Date {
 }
 
 function getLastWeekday(weekday: number, referenceDate: Date): Date {
-  const result = new Date(referenceDate);
+  const result = new Date(Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    referenceDate.getUTCDate()
+  ));
   const currentDay = result.getUTCDay();
   let daysToSubtract = currentDay - weekday;
   if (daysToSubtract <= 0) {
@@ -105,7 +113,11 @@ function getLastWeekday(weekday: number, referenceDate: Date): Date {
 }
 
 function getThisWeekday(weekday: number, referenceDate: Date, weekStartsOn: 'sunday' | 'monday'): Date {
-  const result = new Date(referenceDate);
+  const result = new Date(Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    referenceDate.getUTCDate()
+  ));
   const currentDay = result.getUTCDay();
   const weekStart = weekStartsOn === 'monday' ? 1 : 0;
 
@@ -252,45 +264,180 @@ function convertDateNode(node: ASTNode, opts: Required<ParseOptions>): Date {
 
   // Special days
   if (node.special) {
+    let date: Date;
     switch (node.special) {
       case 'today':
-        return new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+        date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+        break;
       case 'tomorrow':
-        return new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 1));
+        date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 1));
+        break;
       case 'yesterday':
-        return new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - 1));
+        date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - 1));
+        break;
       case 'now':
-        return new Date(ref);
+        date = new Date(ref);
+        break;
+      case 'dayAfterTomorrow':
+        date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 2));
+        break;
+      case 'dayBeforeYesterday':
+        date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - 2));
+        break;
       default:
-        return new Date(ref);
+        date = new Date(ref);
     }
+    // Apply time if present
+    if (node.time) {
+      if (node.time.special === 'noon') {
+        date.setUTCHours(12, 0, 0, 0);
+      } else if (node.time.special === 'midnight') {
+        date.setUTCHours(0, 0, 0, 0);
+      } else if (node.time.hour !== undefined) {
+        date.setUTCHours(node.time.hour, node.time.minute ?? 0, 0, 0);
+      }
+    }
+    return date;
   }
 
-  // Weekday
+  // Time only (for time ranges like "9am to 5pm")
+  if (node.timeOnly && node.time) {
+    const date = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+    if (node.time.special === 'noon') {
+      date.setUTCHours(12, 0, 0, 0);
+    } else if (node.time.special === 'midnight') {
+      date.setUTCHours(0, 0, 0, 0);
+    } else if (node.time.hour !== undefined) {
+      date.setUTCHours(node.time.hour, node.time.minute ?? 0, 0, 0);
+    }
+    return date;
+  }
+
+  // Weekday (potentially with relative period like "next week monday")
   if (node.weekday) {
     const weekdayNum = WEEKDAY_MAP[node.weekday.toLowerCase()] ?? 0;
-    switch (node.relative) {
-      case 'next':
-        return getNextWeekday(weekdayNum, ref);
-      case 'last':
-        return getLastWeekday(weekdayNum, ref);
-      case 'this':
-        return getThisWeekday(weekdayNum, ref, opts.weekStartsOn);
-      default:
-        // Bare weekday - default to next occurrence
-        return getNextWeekday(weekdayNum, ref);
+    let date: Date;
+
+    // Handle complex patterns like "next week monday"
+    if (node.period && node.period.toLowerCase() === 'week') {
+      // "next week monday" - get the weekday in the next/last/this week
+      let weekRef: Date;
+      switch (node.relative) {
+        case 'next':
+          weekRef = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 7));
+          break;
+        case 'last':
+          weekRef = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - 7));
+          break;
+        default:
+          weekRef = ref;
+      }
+      date = getThisWeekday(weekdayNum, weekRef, opts.weekStartsOn);
+    } else {
+      // Simple relative weekday or bare weekday
+      switch (node.relative) {
+        case 'next':
+          date = getNextWeekday(weekdayNum, ref);
+          break;
+        case 'last':
+          date = getLastWeekday(weekdayNum, ref);
+          break;
+        case 'this':
+          date = getThisWeekday(weekdayNum, ref, opts.weekStartsOn);
+          break;
+        default:
+          // Bare weekday - default to next occurrence
+          date = getNextWeekday(weekdayNum, ref);
+      }
     }
+
+    // Apply time if present, otherwise keep midnight (00:00)
+    if (node.time) {
+      if (node.time.special === 'noon') {
+        date.setUTCHours(12, 0, 0, 0);
+      } else if (node.time.special === 'midnight') {
+        date.setUTCHours(0, 0, 0, 0);
+      } else if (node.time.hour !== undefined) {
+        date.setUTCHours(node.time.hour, node.time.minute ?? 0, 0, 0);
+      }
+    }
+    return date;
+  }
+
+  // Date format with raw parts (for US/intl format handling)
+  if (node.formatParts) {
+    const parts = node.formatParts as number[];
+    if (parts.length < 3 || parts[0] === undefined || parts[1] === undefined || parts[2] === undefined) {
+      return ref;
+    }
+    const [p0, p1, p2] = parts;
+    let year: number, month: number, day: number;
+
+    if (p2 > 1000) {
+      // Year is at the end: MM/DD/YYYY or DD/MM/YYYY
+      if (opts.dateFormat === 'intl') {
+        // DD/MM/YYYY (international)
+        day = p0;
+        month = p1;
+        year = p2;
+      } else {
+        // MM/DD/YYYY (US, default), but check for unambiguous cases
+        // If first number > 12, it can't be a month, so interpret as day
+        if (p0 > 12 && p1 <= 12) {
+          // Must be DD/MM/YYYY
+          day = p0;
+          month = p1;
+          year = p2;
+        } else {
+          // Standard US format
+          month = p0;
+          day = p1;
+          year = p2;
+        }
+      }
+    } else {
+      // Assume MM/DD/YY or similar
+      month = p0;
+      day = p1;
+      year = p2 < 100 ? (p2 > 50 ? 1900 + p2 : 2000 + p2) : p2;
+    }
+
+    return new Date(Date.UTC(year, month - 1, day));
   }
 
   // Month + day (+ optional year)
   if (node.month !== undefined && node.day !== undefined) {
-    const year = node.year ?? ref.getUTCFullYear();
+    let year = node.year ?? ref.getUTCFullYear();
     const month = typeof node.month === 'number' ? node.month - 1 : 0;
+
+    // Handle relative month patterns ("last december", "next january")
+    if (node.relativeMonth) {
+      const currentMonth = ref.getUTCMonth();
+      if (node.relativeMonth === 'last') {
+        // "last december" in January means previous December
+        if (month >= currentMonth) {
+          year--;
+        }
+      } else if (node.relativeMonth === 'next') {
+        // "next january" in November means upcoming January
+        if (month <= currentMonth) {
+          year++;
+        }
+      }
+      // 'this' keeps current year
+    } else if (node.year === undefined && month < ref.getUTCMonth()) {
+      // If no year specified and the month is earlier than reference month, use next year
+      // This handles year rollover for dates like "january 1" when reference is in November/December
+      year++;
+    }
+
     const date = new Date(Date.UTC(year, month, node.day));
 
-    // If no year specified and date is in the past, use next year
-    if (node.year === undefined && date.getTime() < ref.getTime()) {
-      date.setUTCFullYear(date.getUTCFullYear() + 1);
+    // Validate the date - if the day overflowed to next month, the input was invalid
+    if (date.getUTCMonth() !== month || date.getUTCDate() !== node.day) {
+      // Return a sentinel value or throw to indicate invalid date
+      // This will be caught by the caller and result in null
+      throw new Error('Invalid date');
     }
 
     // Apply time if present
@@ -359,11 +506,76 @@ function convertDateNode(node: ASTNode, opts: Required<ParseOptions>): Date {
   return new Date(ref);
 }
 
-function convertDurationNode(node: ASTNode): number {
+function convertDurationNode(node: ASTNode, parentHasHours = false): number {
   if (node.combined && Array.isArray(node.combined)) {
-    return node.combined.reduce((total: number, d: ASTNode) => total + convertDurationNode(d), 0);
+    // Check if any part has hours - this affects 'm' interpretation
+    const hasHours = node.combined.some((d: ASTNode) => d.unit === 'hour');
+    return node.combined.reduce((total: number, d: ASTNode) => total + convertDurationNode(d, hasHours), 0);
   }
-  return durationToMs(node.value, node.unit);
+  // If combined with hours, treat 'month' as 'minute' (for patterns like "2h 30m")
+  let unit = node.unit;
+  if (parentHasHours && unit === 'month') {
+    unit = 'minute';
+  }
+  return durationToMs(node.value, unit);
+}
+
+// Get period dates without applying modifier (used for start/end/beginning boundary extraction)
+function convertFuzzyNodeWithoutModifier(node: ASTNode, opts: Required<ParseOptions>): { start: Date; end: Date } {
+  const ref = opts.referenceDate;
+  const year = node.year ?? ref.getUTCFullYear();
+
+  if (node.period === 'quarter' && node.quarter) {
+    return getQuarterDates(node.quarter, year, opts.fiscalYearStart);
+  }
+
+  if (node.period === 'half' && node.half) {
+    return getHalfDates(node.half, year, opts.fiscalYearStart);
+  }
+
+  if (node.period === 'season' && node.season) {
+    return getSeasonDates(node.season, year);
+  }
+
+  if (node.period === 'month' && node.month !== undefined) {
+    const month = typeof node.month === 'number' ? node.month - 1 : 0;
+    const start = new Date(Date.UTC(year, month, 1));
+    const end = new Date(Date.UTC(year, month + 1, 0));
+    return { start, end };
+  }
+
+  if (node.period === 'month') {
+    const month = ref.getUTCMonth();
+    const start = new Date(Date.UTC(year, month, 1));
+    const end = new Date(Date.UTC(year, month + 1, 0));
+    return { start, end };
+  }
+
+  if (node.period === 'week') {
+    const weekStart = opts.weekStartsOn === 'monday' ? 1 : 0;
+    const currentDay = ref.getUTCDay();
+    const daysFromStart = (currentDay - weekStart + 7) % 7;
+    const start = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - daysFromStart));
+    const end = new Date(start.getTime() + 6 * MS_PER_DAY);
+    return { start, end };
+  }
+
+  if (node.period === 'day') {
+    const start = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+    const end = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate(), 23, 59, 59, 999));
+    return { start, end };
+  }
+
+  if (node.period === 'year') {
+    const start = new Date(Date.UTC(year, 0, 1));
+    const end = new Date(Date.UTC(year, 11, 31));
+    return { start, end };
+  }
+
+  return {
+    start: new Date(Date.UTC(year, 0, 1)),
+    end: new Date(Date.UTC(year, 11, 31)),
+  };
 }
 
 function convertFuzzyNode(node: ASTNode, opts: Required<ParseOptions>): { start: Date; end: Date } {
@@ -371,7 +583,15 @@ function convertFuzzyNode(node: ASTNode, opts: Required<ParseOptions>): { start:
   const year = node.year ?? ref.getUTCFullYear();
 
   if (node.period === 'quarter' && node.quarter) {
-    const { start, end } = getQuarterDates(node.quarter, year, opts.fiscalYearStart);
+    let targetYear = year;
+    // If no explicit year and quarter is in the past, roll to next year
+    if (node.year === undefined) {
+      const { end: qEnd } = getQuarterDates(node.quarter, targetYear, opts.fiscalYearStart);
+      if (qEnd < ref) {
+        targetYear++;
+      }
+    }
+    const { start, end } = getQuarterDates(node.quarter, targetYear, opts.fiscalYearStart);
     if (node.modifier) {
       return getModifiedPeriod(start, end, node.modifier);
     }
@@ -394,10 +614,45 @@ function convertFuzzyNode(node: ASTNode, opts: Required<ParseOptions>): { start:
     return { start, end };
   }
 
+  // Month with a specific month number
   if (node.period === 'month' && node.month !== undefined) {
     const month = typeof node.month === 'number' ? node.month - 1 : 0;
     const start = new Date(Date.UTC(year, month, 1));
     const end = new Date(Date.UTC(year, month + 1, 0)); // Last day of month
+    if (node.modifier) {
+      return getModifiedPeriod(start, end, node.modifier);
+    }
+    return { start, end };
+  }
+
+  // "month" without a specific month (uses current month)
+  if (node.period === 'month') {
+    const month = ref.getUTCMonth();
+    const start = new Date(Date.UTC(year, month, 1));
+    const end = new Date(Date.UTC(year, month + 1, 0));
+    if (node.modifier) {
+      return getModifiedPeriod(start, end, node.modifier);
+    }
+    return { start, end };
+  }
+
+  // "week" without a specific week (uses current week)
+  if (node.period === 'week') {
+    const weekStart = opts.weekStartsOn === 'monday' ? 1 : 0;
+    const currentDay = ref.getUTCDay();
+    const daysFromStart = (currentDay - weekStart + 7) % 7;
+    const start = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() - daysFromStart));
+    const end = new Date(start.getTime() + 6 * MS_PER_DAY);
+    if (node.modifier) {
+      return getModifiedPeriod(start, end, node.modifier);
+    }
+    return { start, end };
+  }
+
+  // "day" without a specific day (uses current day)
+  if (node.period === 'day') {
+    const start = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+    const end = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate(), 23, 59, 59, 999));
     if (node.modifier) {
       return getModifiedPeriod(start, end, node.modifier);
     }
@@ -420,7 +675,7 @@ function convertFuzzyNode(node: ASTNode, opts: Required<ParseOptions>): { start:
   };
 }
 
-function convertASTToResult(ast: ASTNode, opts: Required<ParseOptions>): ParseResult | null {
+function convertASTToResult(ast: ASTNode, opts: Required<ParseOptions>, originalInput?: string): ParseResult | null {
   if (!ast || !ast.nodeType) {
     return null;
   }
@@ -430,7 +685,12 @@ function convertASTToResult(ast: ASTNode, opts: Required<ParseOptions>): ParseRe
 
   // Handle titled expressions
   if (ast.nodeType === 'titled') {
-    title = ast.title;
+    // Extract original title from input using offsets to preserve case
+    if (originalInput && ast.titleStart !== undefined && ast.titleEnd !== undefined) {
+      title = originalInput.slice(ast.titleStart, ast.titleEnd).trim();
+    } else {
+      title = ast.title;
+    }
     expression = ast.expression;
   }
 
@@ -495,11 +755,40 @@ function convertASTToResult(ast: ASTNode, opts: Required<ParseOptions>): ParseRe
 
       if (expression.end.nodeType === 'date') {
         end = convertDateNode(expression.end, opts);
+        // For month-only dates, use end of month
+        if (expression.end.monthOnly) {
+          const month = typeof expression.end.month === 'number' ? expression.end.month - 1 : 0;
+          const year = expression.end.year ?? opts.referenceDate.getUTCFullYear();
+          end = new Date(Date.UTC(year, month + 1, 0)); // Last day of month
+        }
+        // For year-only dates, use end of year
+        if (expression.end.yearOnly) {
+          const year = expression.end.year;
+          end = new Date(Date.UTC(year, 11, 31)); // Dec 31
+        }
       } else if (expression.end.nodeType === 'fuzzy') {
         const fuzzy = convertFuzzyNode(expression.end, opts);
         end = fuzzy.end;
       } else {
         end = new Date(opts.referenceDate);
+      }
+
+      // Handle year rollover for cross-month ranges (e.g., "december 20 to january 5")
+      if (end < start) {
+        // If end is before start, it likely means the end should be in the next year
+        // Check if this is a month crossing (not just same day time issue)
+        const endMonth = end.getUTCMonth();
+        const startMonth = start.getUTCMonth();
+        if (endMonth < startMonth) {
+          // End month is earlier in year, add a year
+          end = new Date(Date.UTC(
+            end.getUTCFullYear() + 1,
+            end.getUTCMonth(),
+            end.getUTCDate(),
+            end.getUTCHours(),
+            end.getUTCMinutes()
+          ));
+        }
       }
 
       const duration = end.getTime() - start.getTime();
@@ -515,6 +804,26 @@ function convertASTToResult(ast: ASTNode, opts: Required<ParseOptions>): ParseRe
 
     case 'fuzzy': {
       const { start, end } = convertFuzzyNode(expression, opts);
+      // If the modifier specifies a boundary (start/end/beginning), return a date
+      const mod = expression.modifier;
+      if (mod === 'start' || mod === 'beginning') {
+        // For start/beginning, return the START of the period
+        const periodDates = convertFuzzyNodeWithoutModifier(expression, opts);
+        return {
+          type: 'date',
+          date: periodDates.start,
+          title,
+        };
+      }
+      if (mod === 'end') {
+        // For end, return the END of the period
+        const periodDates = convertFuzzyNodeWithoutModifier(expression, opts);
+        return {
+          type: 'date',
+          date: periodDates.end,
+          title,
+        };
+      }
       return {
         type: 'fuzzy',
         start,
@@ -558,8 +867,11 @@ export function parseInternal(input: string, options?: ParseOptions): ParseResul
     return null;
   }
 
-  // Normalize input
-  const normalized = input.trim().toLowerCase().replace(/\s+/g, ' ');
+  // Keep original input for title case preservation
+  const originalInput = input.trim();
+  // Normalize input for parsing (lowercase for keyword matching)
+  // Don't collapse whitespace - offsets need to match between normalized and originalInput
+  const normalized = originalInput.toLowerCase();
   if (!normalized) {
     return null;
   }
@@ -576,7 +888,7 @@ export function parseInternal(input: string, options?: ParseOptions): ParseResul
 
     // Pick the first result (they should be equivalent for our grammar)
     const ast = parser.results[0];
-    return convertASTToResult(ast, opts);
+    return convertASTToResult(ast, opts, originalInput);
   } catch {
     return null;
   }

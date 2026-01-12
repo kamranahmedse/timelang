@@ -8,6 +8,12 @@ const lexer = moo.compile({
   // Time patterns (must come before numbers to match correctly)
   time: /(?:0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?/,
 
+  // Compact month-day pattern: "July10", "Jan15" (month immediately followed by day number)
+  monthDayCompact: {
+    match: /(?:[Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember|[Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Ss]ept|[Oo]ct|[Nn]ov|[Dd]ec)(?:3[01]|[12]?[0-9])/,
+    value: (s: string) => s.toLowerCase(),
+  },
+
   // Quarter notation: Q1, Q2, Q3, Q4 (case insensitive via alternation)
   quarter: { match: /[Qq][1-4]/, value: (s: string) => s.toUpperCase() },
 
@@ -22,6 +28,13 @@ const lexer = moo.compile({
 
   // Decimal numbers (must come before integer)
   decimal: /\d+\.\d+/,
+
+  // Abbreviated duration units: 1w, 3d, 2h, 30m (minutes), 5s, 1y, 6m (months)
+  // Note: 'm' is ambiguous - we use 'mo' for months and 'm' for minutes in parsing context
+  abbreviatedDuration: {
+    match: /\d+(?:w|d|h|m|s|y)\b/,
+    value: (s: string) => s.toLowerCase(),
+  },
 
   // Integer numbers
   integer: /\d+/,
@@ -50,12 +63,19 @@ const lexer = moo.compile({
       kw_coming: ['coming'],
       kw_upcoming: ['upcoming'],
       kw_past: ['past'],
-      // Period modifiers
-      modifier: ['early', 'mid', 'late', 'beginning', 'middle', 'end', 'start'],
-      // Ordinal words
-      ordinalWord: [
-        'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
-        'eleventh', 'twelfth',
+      // Period modifiers - each gets its own type for grammar disambiguation
+      kw_early: ['early'],
+      kw_mid: ['mid'],
+      kw_late: ['late'],
+      kw_beginning: ['beginning'],
+      kw_middle: ['middle'],
+      kw_end: ['end'],
+      kw_start: ['start'],
+      // Periods/units - must come BEFORE ordinalWord so ordinalWord 'second' wins over unit 'second'
+      unit: [
+        'day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years',
+        'quarter', 'quarters', 'hour', 'hours', 'minute', 'minutes', 'second', 'seconds',
+        'hr', 'hrs', 'min', 'mins', 'sec', 'secs', 'wk', 'wks', 'mo', 'mos', 'yr', 'yrs',
       ],
       // Half word
       halfWord: ['half'],
@@ -81,12 +101,16 @@ const lexer = moo.compile({
       kw_after: ['after'],
       kw_around: ['around'],
       kw_about: ['about'],
+      kw_roughly: ['roughly'],
+      kw_approximately: ['approximately'],
       kw_sometime: ['sometime'],
-      // Periods/units
-      unit: [
-        'day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years',
-        'quarter', 'quarters', 'hour', 'hours', 'minute', 'minutes', 'second', 'seconds',
-        'hr', 'hrs', 'min', 'mins', 'sec', 'secs', 'wk', 'wks', 'mo', 'mos', 'yr', 'yrs',
+      // Ordinal words - 'second' is handled separately since it's also a unit
+      ordinalWord: [
+        'first', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+        'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth',
+        'eighteenth', 'nineteenth', 'twentieth', 'twenty-first', 'twenty-second', 'twenty-third',
+        'twenty-fourth', 'twenty-fifth', 'twenty-sixth', 'twenty-seventh', 'twenty-eighth',
+        'twenty-ninth', 'thirtieth', 'thirty-first',
       ],
       // Seasons
       season: ['spring', 'summer', 'fall', 'autumn', 'winter'],
@@ -155,10 +179,12 @@ const TokenTypes = {
   WS: 'ws',
   NEWLINE: 'newline',
   TIME: 'time',
+  MONTH_DAY_COMPACT: 'monthDayCompact',
   QUARTER: 'quarter',
   HALF: 'half',
   ORDINAL: 'ordinal',
   DECIMAL: 'decimal',
+  ABBREVIATED_DURATION: 'abbreviatedDuration',
   INTEGER: 'integer',
   AMPM: 'ampm',
   // Time words (individual types)
@@ -176,7 +202,13 @@ const TokenTypes = {
   KW_COMING: 'kw_coming',
   KW_UPCOMING: 'kw_upcoming',
   KW_PAST: 'kw_past',
-  MODIFIER: 'modifier',
+  KW_EARLY: 'kw_early',
+  KW_MID: 'kw_mid',
+  KW_LATE: 'kw_late',
+  KW_BEGINNING: 'kw_beginning',
+  KW_MIDDLE: 'kw_middle',
+  KW_END: 'kw_end',
+  KW_START: 'kw_start',
   ORDINAL_WORD: 'ordinalWord',
   HALF_WORD: 'halfWord',
   // Connectors (individual types)
@@ -201,6 +233,8 @@ const TokenTypes = {
   KW_AFTER: 'kw_after',
   KW_AROUND: 'kw_around',
   KW_ABOUT: 'kw_about',
+  KW_ROUGHLY: 'kw_roughly',
+  KW_APPROXIMATELY: 'kw_approximately',
   KW_SOMETIME: 'kw_sometime',
   UNIT: 'unit',
   SEASON: 'season',
