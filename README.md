@@ -1,368 +1,190 @@
 # timelang
 
-Parse natural language time expressions into structured data. Turn user input like "next friday at 3pm" or "last 30 days" into dates you can work with.
-
-## Installation
+Parse natural language time expressions into dates. "next friday", "last 30 days", "Q1 2025" — that kind of thing.
 
 ```bash
 npm install timelang
 ```
 
-## Why timelang?
+## Why I built this
 
-Your users don't think in timestamps. They think in "tomorrow", "next week", and "Q1 2025". timelang bridges that gap.
+I needed natural language date input for [plan.fyi](https://plan.fyi). Users type things like "Team sync - next monday at 10am" or "Sprint 1: Jan 6 to Jan 19" and expect it to just work.
+
+Existing libraries either couldn't handle ranges, didn't extract titles, or fell apart on edge cases. So I built timelang to handle the messy inputs real users type.
+
+## What it handles
 
 ```typescript
-// Instead of building date pickers for every input...
-parseDate('tomorrow at 9am');           // Set a reminder
-parseDate('next monday');               // Schedule a meeting
-parseDate('in 2 weeks');                // Set a due date
+import { parse, parseDate, parseDuration, parseSpan, extract } from 'timelang';
 
-// Instead of manual date math...
-parseDuration('2h 30m');                // Timer duration
-parseDuration('45 minutes');            // Session timeout
+// Single dates
+parseDate('tomorrow');              // Date
+parseDate('next friday at 3pm');    // Date
+parseDate('march 15th');            // Date
 
-// Instead of two date pickers for ranges...
-parseSpan('jan 15 to jan 30');          // Vacation dates
-parseSpan('next week');                 // Weekly report range
-parseSpan('Q1 2025');                   // Quarterly planning
+// Durations
+parseDuration('2 weeks');           // 1209600000 (milliseconds)
+parseDuration('2h 30m');            // 9000000
+parseDuration('one and a half hours'); // 5400000
 
-// Instead of complex input parsing...
+// Ranges
+parseSpan('jan 5 to jan 20');       // { start, end, duration }
+parseSpan('last 30 days');          // { start, end, duration }
+parseSpan('Q1 2025');               // { start, end, duration }
+
+// With titles
+parse('Team Sync - next monday');
+// { type: 'date', date: Date, title: 'Team Sync' }
+
+// Multiple items
 extract('Kickoff - Jan 5, Sprint 1 - Jan 6 to Jan 19, Launch - Feb 1');
-// Returns all three as structured data
+// Returns array of 3 parsed results with titles
 ```
 
-## Real-World Examples
+## How good is it?
 
-### Task Management
+Pretty good. It handles:
+
+- **Fuzzy inputs**: "mid Q1", "early january", "end of month", "first half of 2025"
+- **Sloppy formatting**: Extra spaces, mixed case, missing separators
+- **Edge cases**: Year rollovers, leap years, fiscal year quarters
+- **Multiple formats**: "jan 5", "5th jan", "january 5th", "2025-01-05"
+- **Title extraction**: Pulls out "Team Sync" from "Team Sync - next monday"
+
+It returns `null` for garbage input instead of guessing wrong.
 
 ```typescript
-import { parseDate, parseDuration } from 'timelang';
-
-// User types due date naturally
-const dueDate = parseDate('friday');
-const urgent = parseDate('end of day');
-const followUp = parseDate('in 3 days');
-
-// Estimate task duration
-const estimate = parseDuration('2 hours');
-const sprint = parseDuration('2 weeks');
+parse('asdfasdf');        // null
+parseDate('february 30'); // null (invalid date)
+parseSpan('tomorrow');    // null (not a span)
 ```
 
-### Calendar Events
+## Real examples
+
+### Project planning
 
 ```typescript
-import { parseSpan, parseDate } from 'timelang';
-
-// "Block 2pm-4pm tomorrow for deep work"
-const meeting = parseSpan('tomorrow 2pm to 4pm');
-// { start: Date, end: Date, duration: 7200000 }
-
-// Recurring events
-const weeklySync = parseDate('next monday at 10am');
-const monthlyReview = parseDate('first friday of next month');
-```
-
-### Analytics Dashboards
-
-```typescript
-import { parseSpan } from 'timelang';
-
-// Date range filters users actually want
-const lastWeek = parseSpan('last 7 days');
-const thisMonth = parseSpan('this month');
-const lastQuarter = parseSpan('Q4 2024');
-const ytd = parseSpan('january 1 to today');
-const custom = parseSpan('march 15 to april 30');
-```
-
-### Project Planning
-
-```typescript
-import { parse, extract } from 'timelang';
-
-// Sprint planning
-const sprint = parse('Sprint 1 - Jan 6 to Jan 19');
-// { type: 'span', title: 'Sprint 1', start: Date, end: Date, duration: ... }
-
-// Parse entire roadmap
 const milestones = extract(`
   Design Phase - Jan 1 to Jan 15,
   Development - Jan 16 to Feb 28,
   Testing - March 1-15,
   Launch - March 20
 `);
-// Returns array of 4 parsed results with titles
+// 4 results, each with title, dates, and type
 ```
 
-### Reminders & Notifications
+### Analytics date picker
 
 ```typescript
-import { parseDate, parseDuration } from 'timelang';
-
-// "Remind me in 30 minutes"
-const reminderTime = parseDate('in 30 minutes');
-
-// "Snooze for 1 hour"
-const snoozeMs = parseDuration('1 hour');
-setTimeout(showReminder, snoozeMs);
-
-// Natural language scheduling
-const standup = parseDate('tomorrow at 9am');
-const deadline = parseDate('end of month');
-const nextReview = parseDate('in 2 weeks');
+parseSpan('last 7 days');    // quick filter
+parseSpan('this month');     // quick filter
+parseSpan('Q4 2024');        // quarterly report
+parseSpan('ytd');            // year to date
 ```
 
-### Booking Systems
+### Reminders
 
 ```typescript
-import { parseSpan, parseDate } from 'timelang';
-
-// Hotel booking
-const stay = parseSpan('december 20 to december 27');
-
-// Appointment slots
-const appointment = parseDate('next thursday at 2pm');
-
-// Availability windows
-const available = parseSpan('monday to friday 9am to 5pm');
+parseDate('in 30 minutes');
+parseDate('tomorrow at 9am');
+parseDate('end of day');
 ```
 
-### Time Tracking
+### Time tracking
 
 ```typescript
-import { parseDuration } from 'timelang';
-
-// Log time entries naturally
-const worked = parseDuration('2h 15m');
-const breakTime = parseDuration('45 minutes');
-const overtime = parseDuration('1.5 hours');
-
-// Parse user input
-const timeEntry = parseDuration('one and a half hours'); // 5400000ms
+parseDuration('2h 15m');       // 8100000
+parseDuration('45 minutes');   // 2700000
+parseDuration('1.5 hours');    // 5400000
 ```
 
-### Billing & Subscriptions
+### Fiscal quarters
 
 ```typescript
-import { parseSpan, parseDuration } from 'timelang';
-
-// Billing periods
-const billingCycle = parseSpan('this month');
-const trialPeriod = parseDuration('14 days');
-
-// Fiscal quarters (configurable start month)
-const q1 = parseSpan('Q1', { fiscalYearStart: 'april' });
-// April 1 - June 30 for fiscal year starting in April
+// Different companies start fiscal years differently
+parseSpan('Q1', { fiscalYearStart: 'april' });  // Apr-Jun (UK, Japan)
+parseSpan('Q1', { fiscalYearStart: 'july' });   // Jul-Sep (Australia)
 ```
 
 ## API
 
 ### `parse(input, options?)`
 
-Main function. Returns a discriminated union based on detected type.
+Returns a typed result based on what it detects.
 
 ```typescript
-parse('next friday');           // { type: 'date', date: Date, title: null }
-parse('2 weeks');               // { type: 'duration', duration: 1209600000, title: null }
-parse('jan 5 to jan 20');       // { type: 'span', start: Date, end: Date, ... }
-parse('mid Q1');                // { type: 'fuzzy', start: Date, end: Date, approximate: true, ... }
-parse('Meeting - tomorrow');    // { type: 'date', date: Date, title: 'Meeting' }
-parse('garbage');               // null
+parse('next friday');        // { type: 'date', date, title }
+parse('2 weeks');            // { type: 'duration', duration, title }
+parse('jan 5 to jan 20');    // { type: 'span', start, end, duration, title }
+parse('mid Q1');             // { type: 'fuzzy', start, end, approximate: true, title }
+parse('garbage');            // null
 ```
 
 ### `parseDate(input, options?)`
 
-Returns a Date. Works with date expressions, durations (treated as relative dates), and fuzzy periods (returns the start date).
-
-```typescript
-parseDate('tomorrow');          // Date (tomorrow at midnight)
-parseDate('next friday at 3pm');// Date
-parseDate('2 weeks');           // Date (2 weeks from reference date)
-parseDate('in 30 minutes');     // Date
-parseDate('Q1 2025');           // Date (January 1, 2025 - start of period)
-parseDate('mid january');       // Date (start of mid-january range)
-parseDate('jan 5 to jan 20');   // null (explicit ranges not supported)
-```
+Just gives you a Date or null.
 
 ### `parseDuration(input, options?)`
 
-Returns duration in milliseconds.
-
-```typescript
-parseDuration('2 weeks');       // 1209600000
-parseDuration('2h 30m');        // 9000000
-parseDuration('1.5 days');      // 129600000
-parseDuration('tomorrow');      // null (not a duration)
-```
+Duration in milliseconds or null.
 
 ### `parseSpan(input, options?)`
 
-Returns start date, end date, and duration for ranges and periods.
-
-```typescript
-parseSpan('jan 5 to jan 20');   // { start: Date, end: Date, duration: number }
-parseSpan('last 30 days');      // { start: Date, end: Date, duration: number }
-parseSpan('Q1 2025');           // { start: Date, end: Date, duration: number }
-parseSpan('this week');         // { start: Date, end: Date, duration: number }
-parseSpan('tomorrow');          // null (not a span)
-```
+Start, end, and duration or null.
 
 ### `extract(input, options?)`
 
-Extracts multiple time expressions from text.
-
-```typescript
-extract('Sprint 1 - Jan 5 to Jan 19, Sprint 2 - Jan 20 to Feb 2');
-// [
-//   { type: 'span', title: 'Sprint 1', start: Date, end: Date, ... },
-//   { type: 'span', title: 'Sprint 2', start: Date, end: Date, ... }
-// ]
-
-extract('Call at 2pm, Meeting at 4pm, Dinner at 7pm');
-// [
-//   { type: 'date', title: 'Call', date: Date, ... },
-//   { type: 'date', title: 'Meeting', date: Date, ... },
-//   { type: 'date', title: 'Dinner', date: Date, ... }
-// ]
-```
-
-## Supported Formats
-
-### Dates
-- Relative: `today`, `tomorrow`, `yesterday`, `day after tomorrow`
-- Weekdays: `monday`, `next friday`, `last tuesday`, `this wednesday`
-- Month + Day: `march 15`, `15th march`, `march 15th 2025`
-- With time: `tomorrow at 3pm`, `next monday at 9:30am`
-- ISO format: `2025-03-15`
-
-### Durations
-- Basic: `3 days`, `2 weeks`, `1 month`, `6 hours`
-- Abbreviated: `1d`, `2w`, `3mo`, `1y`, `2h`, `30m`
-  - `m` = minutes, `mo` = months
-- Word numbers: `one week`, `two days`, `a month`
-- Fractional: `1.5 days`, `half a week`, `quarter hour`
-- Combined: `1 week and 2 days`, `2h 30m`, `1 hour 45 minutes`
-
-### Ranges
-- To pattern: `jan 5 to jan 20`
-- From-to: `from march 1 to march 15`
-- Dash: `January 1 - January 15`, `July10-July15`
-- Between: `between feb 1 and feb 14`
-- Through: `january 1 through january 15`
-
-### Timespans
-- Date + duration: `july 3rd for 10 days`
-- Starting pattern: `starting march 1 for 2 weeks`
-
-### Periods
-- Relative: `this week`, `next month`, `last year`
-- Quarters: `Q1`, `Q1 2025`, `first quarter`
-- Modifiers: `early Q1`, `mid january`, `late 2025`, `end of month`
-- Seasons: `spring`, `summer 2025`
-
-### Relative Durations
-- Past: `last 30 days`, `past 2 weeks`
-- Future: `next 30 days`, `coming 2 weeks`
-- Within: `within 30 days`
-
-### With Titles
-- Dash: `Team Sync - next monday at 10am`
-- Colon: `Sprint 1: jan 5 to jan 19`
-- Parenthetical: `Meeting (Jan 15 at 2pm)`
+Array of parsed results from comma/semicolon separated input.
 
 ## Options
 
 ```typescript
-interface ParseOptions {
-  referenceDate?: Date;    // Default: new Date()
-  fiscalYearStart?: 'january' | 'april' | 'july' | 'october';
-  weekStartsOn?: 'sunday' | 'monday';
-  dateFormat?: 'us' | 'intl' | 'auto';
+{
+  referenceDate: new Date(),     // what "today" means
+  fiscalYearStart: 'january',    // when Q1 starts
+  weekStartsOn: 'sunday',        // for "this week" calculations
+  dateFormat: 'intl'             // 'intl' = DD/MM, 'us' = MM/DD
 }
 ```
 
-### `referenceDate`
+## Supported formats
 
-The date used as "today" for relative calculations. Essential for testing and consistent results.
-
-```typescript
-const ref = new Date('2025-06-15');
-parseDate('tomorrow', { referenceDate: ref }); // June 16, 2025
-parseDate('next week', { referenceDate: ref }); // June 22, 2025
-```
-
-### `fiscalYearStart`
-
-Determines when Q1 starts. Default is `'january'`.
-
-```typescript
-// Calendar year (default)
-parseSpan('Q1'); // Jan 1 - Mar 31
-
-// Fiscal year starting in April (UK, Japan, etc.)
-parseSpan('Q1', { fiscalYearStart: 'april' }); // Apr 1 - Jun 30
-
-// Fiscal year starting in July (Australia, etc.)
-parseSpan('Q1', { fiscalYearStart: 'july' }); // Jul 1 - Sep 30
-```
-
-### `weekStartsOn`
-
-Determines which day is the start of the week. Default is `'sunday'`.
-
-```typescript
-parseSpan('this week', { weekStartsOn: 'sunday' });  // Sun-Sat
-parseSpan('this week', { weekStartsOn: 'monday' });  // Mon-Sun
-```
-
-### `dateFormat`
-
-How to interpret ambiguous date formats like `01/02/2025`. Default is `'intl'`.
-
-- `'us'` - MM/DD/YYYY (01/02/2025 = January 2nd)
-- `'intl'` - DD/MM/YYYY (01/02/2025 = February 1st)
-- `'auto'` - Attempt to infer, may return null if ambiguous
-
-ISO 8601 format (YYYY-MM-DD) always works regardless of this option.
-
-## Return Types
-
-```typescript
-type ParseResult = DateResult | DurationResult | SpanResult | FuzzyResult | null;
-
-interface DateResult {
-  type: 'date';
-  date: Date;
-  title: string | null;
-}
-
-interface DurationResult {
-  type: 'duration';
-  duration: number; // milliseconds
-  title: string | null;
-}
-
-interface SpanResult {
-  type: 'span';
-  start: Date;
-  end: Date;
-  duration: number; // milliseconds
-  title: string | null;
-}
-
-interface FuzzyResult {
-  type: 'fuzzy';
-  start: Date;
-  end: Date;
-  approximate: true;
-  title: string | null;
-}
-```
-
-## Browser Support
-
-Works in both Node.js and browsers. No Node.js-specific APIs are used.
+| Category               | Examples                                                            |
+|------------------------|---------------------------------------------------------------------|
+| **Dates**              |                                                                     |
+| Relative               | `today`, `tomorrow`, `yesterday`, `day after tomorrow`              |
+| Weekdays               | `monday`, `next friday`, `last tuesday`, `this wednesday`           |
+| Month + Day            | `march 15`, `15th march`, `march 15th 2025`                         |
+| With time              | `tomorrow at 3pm`, `next monday at 9:30am`                          |
+| ISO format             | `2025-03-15`                                                        |
+| **Durations**          |                                                                     |
+| Basic                  | `3 days`, `2 weeks`, `1 month`, `6 hours`                           |
+| Abbreviated            | `1d`, `2w`, `3mo`, `1y`, `2h`, `30m` (`m` = minutes, `mo` = months) |
+| Word numbers           | `one week`, `two days`, `a month`                                   |
+| Fractional             | `1.5 days`, `half a week`, `quarter hour`                           |
+| Combined               | `1 week and 2 days`, `2h 30m`, `1 hour 45 minutes`                  |
+| **Ranges**             |                                                                     |
+| To pattern             | `jan 5 to jan 20`                                                   |
+| From-to                | `from march 1 to march 15`                                          |
+| Dash                   | `January 1 - January 15`, `July10-July15`                           |
+| Between                | `between feb 1 and feb 14`                                          |
+| Through                | `january 1 through january 15`                                      |
+| **Timespans**          |                                                                     |
+| Date + duration        | `july 3rd for 10 days`                                              |
+| Starting pattern       | `starting march 1 for 2 weeks`                                      |
+| **Periods**            |                                                                     |
+| Relative               | `this week`, `next month`, `last year`                              |
+| Quarters               | `Q1`, `Q1 2025`, `first quarter`                                    |
+| Modifiers              | `early Q1`, `mid january`, `late 2025`, `end of month`              |
+| Seasons                | `spring`, `summer 2025`                                             |
+| **Relative durations** |                                                                     |
+| Past                   | `last 30 days`, `past 2 weeks`                                      |
+| Future                 | `next 30 days`, `coming 2 weeks`                                    |
+| Within                 | `within 30 days`                                                    |
+| **With titles**        |                                                                     |
+| Dash                   | `Team Sync - next monday at 10am`                                   |
+| Colon                  | `Sprint 1: jan 5 to jan 19`                                         |
+| Parenthetical          | `Meeting (Jan 15 at 2pm)`                                           |
 
 ## License
 
