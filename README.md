@@ -1,66 +1,63 @@
 # timelang
 
-<img src="./.github/header.png" align="right" width="320" />
+>Parse natural language time expressions into dates, durations, and ranges.
 
-Parse natural language time expressions into dates, durations, and ranges.
+[![npm version](https://img.shields.io/npm/v/timelang)](https://www.npmjs.com/package/timelang)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Install the package:
+It takes the natural language text as input and provides structured outputs like JavaScript `Date` objects, duration in milliseconds, or date ranges.
+
+- **Flexible inputs** — `tomorrow`, `next friday at 3pm`, `jan 5 to jan 20`, `2 weeks`
+- **Fuzzy periods** — `mid Q1`, `early january`, `end of month`
+- **Title extraction** — Gets `Team Sync` and date from `Team Sync - next monday`
+- **Multiple formats** — `jan 5`, `5th jan`, `january 5th`, `2025-01-05`
+- **Forgiving parser** — Extra spaces, mixed case, missing separators all work
+- **Edge case handling** — Year rollovers, leap years, fiscal quarters
+- **Configurable** — Reference date, fiscal year start, week start day, date format
+- **Zero dependencies** — Lightweight and fast
+- **TypeScript** — Full type definitions included
+
+## Installation
+
+Install the package using your preferred package manager:
 
 ```bash
 npm install timelang
 ```
 
-Start parsing natural language date inputs:
+Use any of the provided methods to parse time expressions:
 
 ```javascript
 import { parse, parseDate, parseDuration, parseSpan, extract } from 'timelang';
 
-// Single dates (returns Date object)
-parseDate('tomorrow');                  // Date
 parseDate('next friday at 3pm');        // Date
-parseDate('march 15th 2025');           // Date
-parseDate('monday next week at 10am');  // Date
-parseDate('day after tomorrow at 5pm'); // Date
-parseDate('mid january')                // Date
+parseDuration('2h 30m');                // 9000000 (milliseconds)
+parseSpan('jan 5 to jan 20');           // { start: Date, end: Date, duration: number }
 
-// Durations (returns milliseconds)
-parseDuration('2 weeks');       // 1209600000 (milliseconds)
-parseDuration('2h 30m');        // 9000000
-parseDuration('1.5 hours');     // 5400000
+parse('Team Sync - next monday');       // { type: 'date', date, title: 'Team Sync' }
+parse('mid Q1');                        // { type: 'fuzzy', start, end, approximate: true }
 
-// Ranges (returns { start: Date, end: Date, duration: number })
-parseSpan('jan 5 to jan 20');   // { start, end, duration }
-parseSpan('last 30 days');      // { start, end, duration }
-parseSpan('next whole month');  // { start, end, duration }
-
-// With titles
-parse('Team Sync - next monday');  // { type: 'date', date: Date, title: 'Team Sync' }
-parse('Sprint 1: jan 5 to jan 19'); // { type: 'span', start, end, title: 'Sprint 1' }
-
-// Multiple items from text
-extract(`Kickoff - Jan 5, Sprint 1 - Jan 6 to Jan 19, Launch - Feb 1`);
+extract('Kickoff - Jan 5, Sprint 1 - Jan 6 to Jan 19, Launch - Feb 1');
 // Returns array of 3 parsed results with titles
 ```
 
-## Why this library?
+## Table of Contents
 
-I needed natural language date input for a project at work where users could pass the dates, times, durations and date ranges in natural language e.g. "next monday", "in a week", "5 minutes", "at 5pm for 10 minutes", "Team sync - next monday at 10am" or "Sprint 1: Jan 6 to Jan 19" and it should work.
-
-timelang is designed to work with a wide variety of inputs, handle edge cases, and return accurate results or null for invalid input.
-
-- **Fuzzy inputs**: "mid Q1", "early january", "end of month"
-- **Flexible formatting**: Extra spaces, mixed case, missing separators all work
-- **Edge cases**: Year rollovers, leap years, fiscal year quarters
-- **Multiple formats**: "jan 5", "5th jan", "january 5th", "2025-01-05"
-- **Title extraction**: Gets "Team Sync" from "Team Sync - next monday"
-- **Customizable options**: Reference date, fiscal year start, week start day, date format
-- **No dependencies**: Lightweight and fast
+- [API](#api)
+  - [parse()](#parseinput-options)
+  - [parseDate()](#parsedateinput-options)
+  - [parseDuration()](#parsedurationinput-options)
+  - [parseSpan()](#parsespaninput-options)
+  - [extract()](#extractinput-options)
+- [Options](#options)
+- [TypeScript Types](#typescript-types)
+- [License](#license)
 
 ## API
 
 ### `parse(input, options?)`
 
-Main function. Returns different result types based on input.
+Returns different result types based on input.
 
 ```typescript
 // Date result
@@ -351,15 +348,13 @@ interface ParseOptions {
 What "today" means. Default is current date.
 
 ```typescript
-const ref = new Date('2025-06-15');
-
-parseDate('tomorrow', { referenceDate: ref });
+parseDate('tomorrow', { referenceDate: new Date('2025-06-15') });
 // June 16, 2025
 
-parseDate('next monday', { referenceDate: ref });
+parseDate('next monday', { referenceDate: new Date('2025-06-15') });
 // Based on June 15, 2025
 
-parseSpan('last 7 days', { referenceDate: ref });
+parseSpan('last 7 days', { referenceDate: new Date('2025-06-15') });
 // June 8-15, 2025
 ```
 
@@ -410,6 +405,40 @@ parseDate('25/01/2025', { dateFormat: 'auto' });    // January 25th (not ambiguo
 ```
 
 ISO format (YYYY-MM-DD) always works regardless of this option.
+
+## TypeScript Types
+
+```typescript
+interface DateResult {
+  type: 'date';
+  date: Date;
+  title: string | null;
+}
+
+interface DurationResult {
+  type: 'duration';
+  duration: number; // milliseconds
+  title: string | null;
+}
+
+interface SpanResult {
+  type: 'span';
+  start: Date;
+  end: Date;
+  duration: number; // milliseconds
+  title: string | null;
+}
+
+interface FuzzyResult {
+  type: 'fuzzy';
+  start: Date;
+  end: Date;
+  approximate: true;
+  title: string | null;
+}
+
+type ParseResult = DateResult | DurationResult | SpanResult | FuzzyResult | null;
+```
 
 ## License
 
