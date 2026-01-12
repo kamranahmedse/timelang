@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "npm run compile:grammar && tsup",
-    "compile:grammar": "nearleyc src/grammar.ne -o src/grammar.ts",
+    "compile:grammar": "nearleyc src/grammar.ne -o src/grammar.ts && sed -i '' '1s/^/\\/\\/ @ts-nocheck\\n/' src/grammar.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
