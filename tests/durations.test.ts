@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, parseDuration, DurationResult } from '../src';
+import { parse, parseDuration, parseDate, DurationResult } from '../src';
 
 // Duration constants in milliseconds
 const MS_PER_SECOND = 1000;
@@ -509,6 +509,63 @@ describe('Duration Parsing', () => {
     it('should return null for invalid input', () => {
       const result = parseDuration('not a duration');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('parseDuration vs parseDate behavior', () => {
+    const referenceDate = new Date('2025-01-15T12:00:00.000Z');
+
+    it('parseDuration returns milliseconds, parseDate returns future date for "2 weeks"', () => {
+      const duration = parseDuration('2 weeks');
+      const date = parseDate('2 weeks', { referenceDate });
+
+      expect(duration).toBe(2 * MS_PER_WEEK);
+      expect(date).not.toBeNull();
+      expect(date?.getTime()).toBe(referenceDate.getTime() + 2 * MS_PER_WEEK);
+    });
+
+    it('parseDuration returns milliseconds, parseDate returns future date for "3 days"', () => {
+      const duration = parseDuration('3 days');
+      const date = parseDate('3 days', { referenceDate });
+
+      expect(duration).toBe(3 * MS_PER_DAY);
+      expect(date).not.toBeNull();
+      expect(date?.getTime()).toBe(referenceDate.getTime() + 3 * MS_PER_DAY);
+    });
+
+    it('parseDuration returns milliseconds, parseDate returns future date for "1 month"', () => {
+      const duration = parseDuration('1 month');
+      const date = parseDate('1 month', { referenceDate });
+
+      expect(duration).toBe(MS_PER_MONTH);
+      expect(date).not.toBeNull();
+      expect(date?.getTime()).toBe(referenceDate.getTime() + MS_PER_MONTH);
+    });
+
+    it('parseDuration returns milliseconds, parseDate returns future date for "2 hours"', () => {
+      const duration = parseDuration('2 hours');
+      const date = parseDate('2 hours', { referenceDate });
+
+      expect(duration).toBe(2 * MS_PER_HOUR);
+      expect(date).not.toBeNull();
+      expect(date?.getTime()).toBe(referenceDate.getTime() + 2 * MS_PER_HOUR);
+    });
+
+    it('parseDuration returns null for dates, parseDate returns the date', () => {
+      const duration = parseDuration('tomorrow');
+      const date = parseDate('tomorrow', { referenceDate });
+
+      expect(duration).toBeNull();
+      expect(date).not.toBeNull();
+      expect(date?.toISOString()).toBe('2025-01-16T00:00:00.000Z');
+    });
+
+    it('both return null for invalid input', () => {
+      const duration = parseDuration('not valid');
+      const date = parseDate('not valid', { referenceDate });
+
+      expect(duration).toBeNull();
+      expect(date).toBeNull();
     });
   });
 });
