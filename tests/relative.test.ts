@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse } from '../src/index';
+import { parse, SpanResult, DateResult } from '../src';
 
 // Fixed reference date for deterministic tests: Wednesday, January 15, 2025 at noon UTC
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
@@ -7,7 +7,7 @@ const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 // Duration constants in milliseconds
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MS_PER_WEEK = 7 * MS_PER_DAY;
-const MS_PER_MONTH = 30 * MS_PER_DAY; // Approximate
+const MS_PER_MONTH = 30 * MS_PER_DAY;
 
 // Helper to create expected dates in UTC
 function utc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -21,17 +21,13 @@ function expectRelativeSpan(
   expectedEnd: Date,
   options = { referenceDate }
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('span');
-  if (result?.type === 'span') {
-    expect(result.start.toISOString()).toBe(expectedStart.toISOString());
-    expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
-    // Verify duration = end - start
-    const expectedDuration = expectedEnd.getTime() - expectedStart.getTime();
-    expect(result.duration).toBe(expectedDuration);
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as SpanResult;
+  expect(result.type).toBe('span');
+  expect(result.start.toISOString()).toBe(expectedStart.toISOString());
+  expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
+  const expectedDuration = expectedEnd.getTime() - expectedStart.getTime();
+  expect(result.duration).toBe(expectedDuration);
+  expect(result.title).toBeNull();
 }
 
 // Helper that just checks the result is a span with correct duration
@@ -41,24 +37,17 @@ function expectRelativeDuration(
   direction: 'past' | 'future',
   options = { referenceDate }
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('span');
-  if (result?.type === 'span') {
-    expect(result.duration).toBe(expectedDuration);
-    expect(result.title).toBeNull();
+  const result = parse(input, options) as SpanResult;
+  expect(result.type).toBe('span');
+  expect(result.duration).toBe(expectedDuration);
+  expect(result.title).toBeNull();
 
-    if (direction === 'past') {
-      // End should be around reference date
-      expect(result.end.getTime()).toBeLessThanOrEqual(referenceDate.getTime() + MS_PER_DAY);
-      // Start should be before end
-      expect(result.start.getTime()).toBeLessThan(result.end.getTime());
-    } else {
-      // Start should be around reference date
-      expect(result.start.getTime()).toBeGreaterThanOrEqual(referenceDate.getTime() - MS_PER_DAY);
-      // End should be after start
-      expect(result.end.getTime()).toBeGreaterThan(result.start.getTime());
-    }
+  if (direction === 'past') {
+    expect(result.end.getTime()).toBeLessThanOrEqual(referenceDate.getTime() + MS_PER_DAY);
+    expect(result.start.getTime()).toBeLessThan(result.end.getTime());
+  } else {
+    expect(result.start.getTime()).toBeGreaterThanOrEqual(referenceDate.getTime() - MS_PER_DAY);
+    expect(result.end.getTime()).toBeGreaterThan(result.start.getTime());
   }
 }
 
@@ -77,25 +66,16 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "last 3 months"', () => {
-      const result = parse('last 3 months', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        // Approximate check for 3 months
-        expect(result.duration).toBeGreaterThanOrEqual(85 * MS_PER_DAY);
-        expect(result.duration).toBeLessThanOrEqual(95 * MS_PER_DAY);
-      }
+      const result = parse('last 3 months', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBeGreaterThanOrEqual(85 * MS_PER_DAY);
+      expect(result.duration).toBeLessThanOrEqual(95 * MS_PER_DAY);
     });
 
     it('should parse "last year"', () => {
-      // "last year" is interpreted as the previous calendar year (not "past 365 days")
-      // Returns start of 2024 since reference is Jan 15, 2025
-      const result = parse('last year', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
-      if (result?.type === 'date') {
-        expect(result.date.toISOString()).toBe(utc(2024, 1, 1).toISOString());
-      }
+      const result = parse('last year', { referenceDate }) as DateResult;
+      expect(result.type).toBe('date');
+      expect(result.date.toISOString()).toBe(utc(2024, 1, 1).toISOString());
     });
 
     it('should parse "past 30 days"', () => {
@@ -113,9 +93,9 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "past year"', () => {
-      const result = parse('past year', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('past year', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(365 * MS_PER_DAY);
     });
 
     it('should parse "previous 7 days"', () => {
@@ -127,9 +107,9 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "previous month"', () => {
-      const result = parse('previous month', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('previous month', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(30 * MS_PER_DAY);
     });
   });
 
@@ -147,20 +127,15 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "next 3 months"', () => {
-      const result = parse('next 3 months', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBeGreaterThanOrEqual(85 * MS_PER_DAY);
-        expect(result.duration).toBeLessThanOrEqual(95 * MS_PER_DAY);
-      }
+      const result = parse('next 3 months', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBeGreaterThanOrEqual(85 * MS_PER_DAY);
+      expect(result.duration).toBeLessThanOrEqual(95 * MS_PER_DAY);
     });
 
     it('should parse "next year"', () => {
-      const result = parse('next year', { referenceDate });
-      expect(result).not.toBeNull();
-      // This could be date (start of next year) or span (the next 365 days)
-      // Based on context, we'll accept either
+      const result = parse('next year', { referenceDate })!;
+      expect(['date', 'span']).toContain(result.type);
     });
 
     it('should parse "coming 2 weeks"', () => {
@@ -168,9 +143,10 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "coming 3 months"', () => {
-      const result = parse('coming 3 months', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('coming 3 months', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBeGreaterThanOrEqual(85 * MS_PER_DAY);
+      expect(result.duration).toBeLessThanOrEqual(95 * MS_PER_DAY);
     });
 
     it('should parse "upcoming week"', () => {
@@ -178,9 +154,9 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "upcoming 2 months"', () => {
-      const result = parse('upcoming 2 months', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('upcoming 2 months', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(60 * MS_PER_DAY);
     });
   });
 
@@ -194,15 +170,15 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "within the next month"', () => {
-      const result = parse('within the next month', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('within the next month', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(30 * MS_PER_DAY);
     });
 
     it('should parse "within the next 3 months"', () => {
-      const result = parse('within the next 3 months', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('within the next 3 months', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(90 * MS_PER_DAY);
     });
 
     it('should parse "within the past week"', () => {
@@ -220,15 +196,15 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "over the last month"', () => {
-      const result = parse('over the last month', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('over the last month', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(30 * MS_PER_DAY);
     });
 
     it('should parse "over the coming weeks"', () => {
-      const result = parse('over the coming weeks', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('over the coming weeks', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(7 * MS_PER_DAY);
     });
   });
 
@@ -242,15 +218,15 @@ describe('Relative Duration Parsing', () => {
     });
 
     it('should parse "in the past month"', () => {
-      const result = parse('in the past month', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('in the past month', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(30 * MS_PER_DAY);
     });
 
     it('should parse "in the coming weeks"', () => {
-      const result = parse('in the coming weeks', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('in the coming weeks', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(7 * MS_PER_DAY);
     });
   });
 

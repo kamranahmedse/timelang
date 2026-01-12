@@ -37,10 +37,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "chrono-node": "^2.7.7",
     "moo": "^0.5.2",
-    "nearley": "^2.20.1",
-    "parse-duration": "^1.1.0"
+    "nearley": "^2.20.1"
   },
   "devDependencies": {
     "@types/moo": "^0.5.9",

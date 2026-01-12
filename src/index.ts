@@ -1,4 +1,4 @@
-// timelang - Natural language time expression parser
+import { parseInternal, extractInternal } from './parser';
 
 export interface DateResult {
   type: 'date';
@@ -37,8 +37,6 @@ export interface ParseOptions {
   dateFormat?: 'us' | 'intl' | 'auto';
 }
 
-import { parseInternal, extractInternal } from './parser.js';
-
 export function parse(input: string, options?: ParseOptions): ParseResult | null {
   return parseInternal(input, options);
 }
@@ -68,7 +66,10 @@ export function parseSpan(
     return {
       start: result.start,
       end: result.end,
-      duration: result.type === 'span' ? result.duration : result.end.getTime() - result.start.getTime(),
+      duration:
+        result.type === 'span'
+          ? result.duration
+          : result.end.getTime() - result.start.getTime(),
     };
   }
   return null;

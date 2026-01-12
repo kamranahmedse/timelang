@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, parseDuration } from '../src/index';
+import { parse, parseDuration, DurationResult } from '../src';
 
 // Duration constants in milliseconds
 const MS_PER_SECOND = 1000;
@@ -7,31 +7,25 @@ const MS_PER_MINUTE = 60 * MS_PER_SECOND;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 const MS_PER_WEEK = 7 * MS_PER_DAY;
-const MS_PER_MONTH = 30 * MS_PER_DAY; // Approximate
-const MS_PER_YEAR = 365 * MS_PER_DAY; // Approximate
+const MS_PER_MONTH = 30 * MS_PER_DAY;
+const MS_PER_YEAR = 365 * MS_PER_DAY;
 
 // Helper to check if result is a duration type
 function expectDuration(input: string, expectedMs: number) {
-  const result = parse(input);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('duration');
-  if (result?.type === 'duration') {
-    expect(result.duration).toBe(expectedMs);
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input) as DurationResult;
+  expect(result.type).toBe('duration');
+  expect(result.duration).toBe(expectedMs);
+  expect(result.title).toBeNull();
 }
 
 // Helper with approximate matching for month/year durations
 function expectDurationApprox(input: string, expectedMs: number, tolerance = 0.01) {
-  const result = parse(input);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('duration');
-  if (result?.type === 'duration') {
-    const diff = Math.abs(result.duration - expectedMs);
-    const maxDiff = expectedMs * tolerance;
-    expect(diff).toBeLessThanOrEqual(maxDiff);
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input) as DurationResult;
+  expect(result.type).toBe('duration');
+  const diff = Math.abs(result.duration - expectedMs);
+  const maxDiff = expectedMs * tolerance;
+  expect(diff).toBeLessThanOrEqual(maxDiff);
+  expect(result.title).toBeNull();
 }
 
 describe('Duration Parsing', () => {

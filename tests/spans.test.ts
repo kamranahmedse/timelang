@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parse, parseSpan } from '../src/index';
+import { parse, parseSpan, SpanResult } from '../src';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed the reference date for deterministic tests: Wednesday, January 15, 2025
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
 // Duration constants in milliseconds
@@ -23,17 +23,13 @@ function expectSpan(
   expectedDuration: number,
   options = { referenceDate }
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('span');
-  if (result?.type === 'span') {
-    expect(result.start.toISOString()).toBe(expectedStart.toISOString());
-    expect(result.duration).toBe(expectedDuration);
-    // Verify end = start + duration
-    const expectedEnd = new Date(expectedStart.getTime() + expectedDuration);
-    expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as SpanResult;
+  expect(result.type).toBe('span');
+  expect(result.start.toISOString()).toBe(expectedStart.toISOString());
+  expect(result.duration).toBe(expectedDuration);
+  const expectedEnd = new Date(expectedStart.getTime() + expectedDuration);
+  expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
+  expect(result.title).toBeNull();
 }
 
 // Helper with approximate duration matching
@@ -44,16 +40,13 @@ function expectSpanApprox(
   options = { referenceDate },
   tolerance = 0.01
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('span');
-  if (result?.type === 'span') {
-    expect(result.start.toISOString()).toBe(expectedStart.toISOString());
-    const diff = Math.abs(result.duration - expectedDuration);
-    const maxDiff = expectedDuration * tolerance;
-    expect(diff).toBeLessThanOrEqual(maxDiff);
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as SpanResult;
+  expect(result.type).toBe('span');
+  expect(result.start.toISOString()).toBe(expectedStart.toISOString());
+  const diff = Math.abs(result.duration - expectedDuration);
+  const maxDiff = expectedDuration * tolerance;
+  expect(diff).toBeLessThanOrEqual(maxDiff);
+  expect(result.title).toBeNull();
 }
 
 describe('Timespan Parsing (Date + Duration)', () => {
@@ -102,22 +95,15 @@ describe('Timespan Parsing (Date + Duration)', () => {
     });
 
     it('should parse "in early january for 1 week"', () => {
-      // "early january" is roughly the first third of January
-      const result = parse('in early january for 1 week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(MS_PER_WEEK);
-      }
+      const result = parse('in early january for 1 week', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(MS_PER_WEEK);
     });
 
     it('should parse "in late march for 5 days"', () => {
-      const result = parse('in late march for 5 days', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(5 * MS_PER_DAY);
-      }
+      const result = parse('in late march for 5 days', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(5 * MS_PER_DAY);
     });
   });
 
@@ -149,13 +135,9 @@ describe('Timespan Parsing (Date + Duration)', () => {
     });
 
     it('should parse "beginning next week for 10 days"', () => {
-      // Next week starts around Jan 19 or 20 depending on weekStartsOn
-      const result = parse('beginning next week for 10 days', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(10 * MS_PER_DAY);
-      }
+      const result = parse('beginning next week for 10 days', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(10 * MS_PER_DAY);
     });
 
     it('should parse "beginning april 15 for 3 weeks"', () => {

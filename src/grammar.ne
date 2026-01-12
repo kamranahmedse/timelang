@@ -109,15 +109,6 @@ const makeTitled = (title: string, expression: any, titleStart?: number, titleEn
   expression,
 });
 
-// Post-expression titled (same as makeTitled, different call site)
-const makeTitledPost = (title: string, expression: any, titleStart?: number, titleEnd?: number): TitledNode => ({
-  nodeType: 'titled',
-  title: title.trim(),
-  titleStart,
-  titleEnd,
-  expression,
-});
-
 // Unit normalization
 function normalizeUnit(unit: string): string {
   const u = unit.toLowerCase();
@@ -229,7 +220,7 @@ titledExpression -> titleTextSimple _ %dash _ expression {% d => makeTitled(d[0]
                   | titleText _ startingConnector _ expression {% d => makeTitled(d[0].text, d[4], d[0].start, d[0].end) %}
                   | titleText _ byConnector _ expression {% d => makeTitled(d[0].text, d[4], d[0].start, d[0].end) %}
                   | titleText _ %dash _ byConnector _ expression {% d => makeTitled(d[0].text, d[6], d[0].start, d[0].end) %}
-                  | expression _ postTitle {% d => makeTitledPost(d[2].text, d[0], d[2].start, d[2].end) %}
+                  | expression _ postTitle {% d => makeTitled(d[2].text, d[0], d[2].start, d[2].end) %}
 
 # Post-expression title (for patterns like "Q1 planning", "monday meeting")
 postTitle -> %word {% d => ({ text: d[0].value, start: d[0].offset, end: d[0].offset + d[0].text.length }) %}

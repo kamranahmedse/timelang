@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, parseDate } from '../src/index';
+import { parse, parseDate, DateResult } from '../src/index';
 
 // Fixed reference date for deterministic tests: Wednesday, January 15, 2025
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
@@ -11,13 +11,10 @@ function utc(year: number, month: number, day: number, hour = 0, minute = 0): Da
 
 // Helper to check if result is a date type
 function expectDate(input: string, expectedDate: Date, options = { referenceDate }) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('date');
-  if (result?.type === 'date') {
-    expect(result.date.toISOString()).toBe(expectedDate.toISOString());
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as DateResult;
+  expect(result.type).toBe('date');
+  expect(result.date.toISOString()).toBe(expectedDate.toISOString());
+  expect(result.title).toBeNull();
 }
 
 // Helper to check parseDate helper function
@@ -381,22 +378,15 @@ describe('Single Date Parsing', () => {
 
   describe('Relative weeks/months/years', () => {
     it('should parse "next week"', () => {
-      // Next week starts Jan 19 (Sunday) or Jan 20 (Monday) depending on weekStartsOn
-      const result = parse('next week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('next week', utc(2025, 1, 19));
     });
 
     it('should parse "last week"', () => {
-      const result = parse('last week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('last week', utc(2025, 1, 5));
     });
 
     it('should parse "this week"', () => {
-      const result = parse('this week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('this week', utc(2025, 1, 12));
     });
 
     it('should parse "next month"', () => {
@@ -450,21 +440,15 @@ describe('Single Date Parsing', () => {
     });
 
     it('should parse "end of week"', () => {
-      const result = parse('end of week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('end of week', utc(2025, 1, 18));
     });
 
     it('should parse "beginning of week"', () => {
-      const result = parse('beginning of week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('beginning of week', utc(2025, 1, 12));
     });
 
     it('should parse "start of week"', () => {
-      const result = parse('start of week', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('date');
+      expectDate('start of week', utc(2025, 1, 12));
     });
 
     it('should parse "end of january"', () => {

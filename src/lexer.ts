@@ -141,8 +141,6 @@ const lexer = moo.compile({
   rparen: ')',
   lbracket: '[',
   rbracket: ']',
-  lbrace: '{',
-  rbrace: '}',
   colon: ':',
   semicolon: ';',
   comma: ',',
@@ -153,108 +151,4 @@ const lexer = moo.compile({
   other: /./,
 });
 
-// Helper to tokenize input (case-insensitive)
-// We convert to lowercase before tokenizing since moo.keywords doesn't support case-insensitive matching
-function tokenize(input: string) {
-  lexer.reset(input.toLowerCase());
-  return Array.from(lexer);
-}
-
-// Tokenize while preserving original case information
-// Returns tokens with an additional 'original' property
-function tokenizeWithOriginal(input: string) {
-  const normalized = input.toLowerCase();
-  lexer.reset(normalized);
-  const tokens = Array.from(lexer);
-
-  // Map back original text based on positions
-  return tokens.map(token => ({
-    ...token,
-    original: input.slice(token.offset, token.offset + token.text.length),
-  }));
-}
-
-// Token type constants for use in grammar
-const TokenTypes = {
-  WS: 'ws',
-  NEWLINE: 'newline',
-  TIME: 'time',
-  MONTH_DAY_COMPACT: 'monthDayCompact',
-  QUARTER: 'quarter',
-  HALF: 'half',
-  ORDINAL: 'ordinal',
-  DECIMAL: 'decimal',
-  ABBREVIATED_DURATION: 'abbreviatedDuration',
-  INTEGER: 'integer',
-  AMPM: 'ampm',
-  // Time words (individual types)
-  KW_TODAY: 'kw_today',
-  KW_TOMORROW: 'kw_tomorrow',
-  KW_YESTERDAY: 'kw_yesterday',
-  KW_NOW: 'kw_now',
-  KW_NOON: 'kw_noon',
-  KW_MIDNIGHT: 'kw_midnight',
-  // Relative modifiers (individual types)
-  KW_NEXT: 'kw_next',
-  KW_LAST: 'kw_last',
-  KW_THIS: 'kw_this',
-  KW_PREVIOUS: 'kw_previous',
-  KW_COMING: 'kw_coming',
-  KW_UPCOMING: 'kw_upcoming',
-  KW_PAST: 'kw_past',
-  KW_EARLY: 'kw_early',
-  KW_MID: 'kw_mid',
-  KW_LATE: 'kw_late',
-  KW_BEGINNING: 'kw_beginning',
-  KW_MIDDLE: 'kw_middle',
-  KW_END: 'kw_end',
-  KW_START: 'kw_start',
-  ORDINAL_WORD: 'ordinalWord',
-  HALF_WORD: 'halfWord',
-  // Connectors (individual types)
-  KW_TO: 'kw_to',
-  KW_FROM: 'kw_from',
-  KW_UNTIL: 'kw_until',
-  KW_THROUGH: 'kw_through',
-  KW_BETWEEN: 'kw_between',
-  KW_AND: 'kw_and',
-  KW_FOR: 'kw_for',
-  KW_IN: 'kw_in',
-  KW_ON: 'kw_on',
-  KW_AT: 'kw_at',
-  KW_OF: 'kw_of',
-  KW_THE: 'kw_the',
-  KW_WITHIN: 'kw_within',
-  KW_OVER: 'kw_over',
-  KW_DURING: 'kw_during',
-  KW_STARTING: 'kw_starting',
-  KW_BY: 'kw_by',
-  KW_BEFORE: 'kw_before',
-  KW_AFTER: 'kw_after',
-  KW_AROUND: 'kw_around',
-  KW_ABOUT: 'kw_about',
-  KW_ROUGHLY: 'kw_roughly',
-  KW_APPROXIMATELY: 'kw_approximately',
-  KW_SOMETIME: 'kw_sometime',
-  UNIT: 'unit',
-  SEASON: 'season',
-  WORD_NUMBER: 'wordNumber',
-  MONTH: 'month',
-  WEEKDAY: 'weekday',
-  OTHER_KEYWORD: 'otherKeyword',
-  WORD: 'word',
-  LPAREN: 'lparen',
-  RPAREN: 'rparen',
-  LBRACKET: 'lbracket',
-  RBRACKET: 'rbracket',
-  LBRACE: 'lbrace',
-  RBRACE: 'rbrace',
-  COLON: 'colon',
-  SEMICOLON: 'semicolon',
-  COMMA: 'comma',
-  DASH: 'dash',
-  SLASH: 'slash',
-  OTHER: 'other',
-} as const;
-
-export { lexer, tokenize, tokenizeWithOriginal, TokenTypes };
+export { lexer };

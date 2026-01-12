@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, parseDate, parseDuration, parseSpan, extract } from '../src/index';
+import { parse, parseDate, parseDuration, parseSpan, extract } from '../src';
 
 describe('timelang setup', () => {
   it('should export parse function', () => {

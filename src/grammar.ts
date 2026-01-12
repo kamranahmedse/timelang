@@ -185,15 +185,6 @@ const makeTitled = (title: string, expression: any, titleStart?: number, titleEn
   expression,
 });
 
-// Post-expression titled (same as makeTitled, different call site)
-const makeTitledPost = (title: string, expression: any, titleStart?: number, titleEnd?: number): TitledNode => ({
-  nodeType: 'titled',
-  title: title.trim(),
-  titleStart,
-  titleEnd,
-  expression,
-});
-
 // Unit normalization
 function normalizeUnit(unit: string): string {
   const u = unit.toLowerCase();
@@ -328,7 +319,7 @@ const grammar: Grammar = {
     {"name": "titledExpression", "symbols": ["titleText", "_", "startingConnector", "_", "expression"], "postprocess": d => makeTitled(d[0].text, d[4], d[0].start, d[0].end)},
     {"name": "titledExpression", "symbols": ["titleText", "_", "byConnector", "_", "expression"], "postprocess": d => makeTitled(d[0].text, d[4], d[0].start, d[0].end)},
     {"name": "titledExpression", "symbols": ["titleText", "_", (lexer.has("dash") ? {type: "dash"} : dash), "_", "byConnector", "_", "expression"], "postprocess": d => makeTitled(d[0].text, d[6], d[0].start, d[0].end)},
-    {"name": "titledExpression", "symbols": ["expression", "_", "postTitle"], "postprocess": d => makeTitledPost(d[2].text, d[0], d[2].start, d[2].end)},
+    {"name": "titledExpression", "symbols": ["expression", "_", "postTitle"], "postprocess": d => makeTitled(d[2].text, d[0], d[2].start, d[2].end)},
     {"name": "postTitle", "symbols": [(lexer.has("word") ? {type: "word"} : word)], "postprocess": d => ({ text: d[0].value, start: d[0].offset, end: d[0].offset + d[0].text.length })},
     {"name": "postTitle", "symbols": ["postTitle", "_", (lexer.has("word") ? {type: "word"} : word)], "postprocess": d => ({ text: d[0].text + ' ' + d[2].value, start: d[0].start, end: d[2].offset + d[2].text.length })},
     {"name": "titleText", "symbols": ["titleWord"], "postprocess": d => ({ text: d[0].text, start: d[0].start, end: d[0].end })},

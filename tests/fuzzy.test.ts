@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse } from '../src/index';
+import { parse, FuzzyResult, DateResult, SpanResult } from '../src/index';
 
 // Fixed reference date for deterministic tests: Wednesday, January 15, 2025
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
@@ -20,28 +20,21 @@ function expectFuzzy(
   expectedEnd: Date,
   options = { referenceDate }
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('fuzzy');
-  if (result?.type === 'fuzzy') {
-    expect(result.start.toISOString()).toBe(expectedStart.toISOString());
-    expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
-    expect(result.approximate).toBe(true);
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as FuzzyResult;
+  expect(result.type).toBe('fuzzy');
+  expect(result.start.toISOString()).toBe(expectedStart.toISOString());
+  expect(result.end.toISOString()).toBe(expectedEnd.toISOString());
+  expect(result.approximate).toBe(true);
+  expect(result.title).toBeNull();
 }
 
 // Helper for fuzzy results where we just check type and approximate flag
 function expectFuzzyType(input: string, options = { referenceDate }) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('fuzzy');
-  if (result?.type === 'fuzzy') {
-    expect(result.approximate).toBe(true);
-    expect(result.title).toBeNull();
-    // Verify start <= end
-    expect(result.start.getTime()).toBeLessThanOrEqual(result.end.getTime());
-  }
+  const result = parse(input, options) as FuzzyResult;
+  expect(result.type).toBe('fuzzy');
+  expect(result.approximate).toBe(true);
+  expect(result.title).toBeNull();
+  expect(result.start.getTime()).toBeLessThanOrEqual(result.end.getTime());
 }
 
 // Helper for boundary expressions that return a specific date (beginning/start/end of X)
@@ -50,13 +43,10 @@ function expectBoundaryDate(
   expectedDate: Date,
   options = { referenceDate }
 ) {
-  const result = parse(input, options);
-  expect(result).not.toBeNull();
-  expect(result?.type).toBe('date');
-  if (result?.type === 'date') {
-    expect(result.date.toISOString()).toBe(expectedDate.toISOString());
-    expect(result.title).toBeNull();
-  }
+  const result = parse(input, options) as DateResult;
+  expect(result.type).toBe('date');
+  expect(result.date.toISOString()).toBe(expectedDate.toISOString());
+  expect(result.title).toBeNull();
 }
 
 describe('Fuzzy Period Parsing', () => {
@@ -476,110 +466,80 @@ describe('Fuzzy Period Parsing', () => {
 
   describe('Duration within fuzzy period', () => {
     it('should parse "50 days in mid Q1"', () => {
-      const result = parse('50 days in mid Q1', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(50 * MS_PER_DAY);
-      }
+      const result = parse('50 days in mid Q1', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(50 * MS_PER_DAY);
     });
 
     it('should parse "2 weeks in early Q2"', () => {
-      const result = parse('2 weeks in early Q2', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(2 * MS_PER_WEEK);
-      }
+      const result = parse('2 weeks in early Q2', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(2 * MS_PER_WEEK);
     });
 
     it('should parse "10 days in late Q3"', () => {
-      const result = parse('10 days in late Q3', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(10 * MS_PER_DAY);
-      }
+      const result = parse('10 days in late Q3', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(10 * MS_PER_DAY);
     });
 
     it('should parse "1 month in Q4"', () => {
-      const result = parse('1 month in Q4', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('1 month in Q4', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(30 * MS_PER_DAY);
     });
 
     it('should parse "2 weeks in early march"', () => {
-      const result = parse('2 weeks in early march', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(2 * MS_PER_WEEK);
-      }
+      const result = parse('2 weeks in early march', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(2 * MS_PER_WEEK);
     });
 
     it('should parse "10 days in mid january"', () => {
-      const result = parse('10 days in mid january', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(10 * MS_PER_DAY);
-      }
+      const result = parse('10 days in mid january', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(10 * MS_PER_DAY);
     });
 
     it('should parse "3 months in early 2025"', () => {
-      const result = parse('3 months in early 2025', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('3 months in early 2025', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(90 * MS_PER_DAY);
     });
 
     it('should parse "6 months in the first half of 2025"', () => {
-      const result = parse('6 months in the first half of 2025', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
+      const result = parse('6 months in the first half of 2025', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(180 * MS_PER_DAY);
     });
 
     it('should parse "2 weeks in early spring"', () => {
-      const result = parse('2 weeks in early spring', { referenceDate });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('span');
-      if (result?.type === 'span') {
-        expect(result.duration).toBe(2 * MS_PER_WEEK);
-      }
+      const result = parse('2 weeks in early spring', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.duration).toBe(2 * MS_PER_WEEK);
     });
   });
 
   describe('Fiscal year options', () => {
     it('should parse "Q1" with fiscal year starting in april', () => {
-      const result = parse('Q1', { referenceDate, fiscalYearStart: 'april' });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('fuzzy');
-      if (result?.type === 'fuzzy') {
-        // Q1 with April fiscal year = Apr 1 - Jun 30
-        expect(result.start.getUTCMonth()).toBe(3); // April (0-indexed)
-        expect(result.end.getUTCMonth()).toBe(5); // June
-      }
+      const result = parse('Q1', { referenceDate, fiscalYearStart: 'april' }) as FuzzyResult;
+      expect(result.type).toBe('fuzzy');
+      expect(result.start.getUTCMonth()).toBe(3); // April (0-indexed)
+      expect(result.end.getUTCMonth()).toBe(5); // June
     });
 
     it('should parse "Q1" with fiscal year starting in july', () => {
-      const result = parse('Q1', { referenceDate, fiscalYearStart: 'july' });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('fuzzy');
-      if (result?.type === 'fuzzy') {
-        // Q1 with July fiscal year = Jul 1 - Sep 30
-        expect(result.start.getUTCMonth()).toBe(6); // July
-        expect(result.end.getUTCMonth()).toBe(8); // September
-      }
+      const result = parse('Q1', { referenceDate, fiscalYearStart: 'july' }) as FuzzyResult;
+      expect(result.type).toBe('fuzzy');
+      expect(result.start.getUTCMonth()).toBe(6); // July
+      expect(result.end.getUTCMonth()).toBe(8); // September
     });
 
     it('should parse "Q1" with fiscal year starting in october', () => {
-      const result = parse('Q1', { referenceDate, fiscalYearStart: 'october' });
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('fuzzy');
-      if (result?.type === 'fuzzy') {
-        // Q1 with October fiscal year = Oct 1 - Dec 31
-        expect(result.start.getUTCMonth()).toBe(9); // October
-        expect(result.end.getUTCMonth()).toBe(11); // December
-      }
+      const result = parse('Q1', { referenceDate, fiscalYearStart: 'october' }) as FuzzyResult;
+      expect(result.type).toBe('fuzzy');
+      expect(result.start.getUTCMonth()).toBe(9); // October
+      expect(result.end.getUTCMonth()).toBe(11); // December
     });
   });
 });
