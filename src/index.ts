@@ -37,9 +37,10 @@ export interface ParseOptions {
   dateFormat?: 'us' | 'intl' | 'auto';
 }
 
-export function parse(_input: string, _options?: ParseOptions): ParseResult | null {
-  // TODO: Implement
-  return null;
+import { parseInternal, extractInternal } from './parser.js';
+
+export function parse(input: string, options?: ParseOptions): ParseResult | null {
+  return parseInternal(input, options);
 }
 
 export function parseDate(input: string, options?: ParseOptions): Date | null {
@@ -73,7 +74,6 @@ export function parseSpan(
   return null;
 }
 
-export function extract(_input: string, _options?: ParseOptions): ParseResult[] {
-  // TODO: Implement
-  return [];
+export function extract(input: string, options?: ParseOptions): ParseResult[] {
+  return extractInternal(input, options);
 }
