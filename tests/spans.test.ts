@@ -1,22 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { parse, parseSpan, SpanResult } from '../src';
 
-// Fixed the reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Duration constants in milliseconds
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 const MS_PER_WEEK = 7 * MS_PER_DAY;
 const MS_PER_MONTH = 30 * MS_PER_DAY;
 const MS_PER_YEAR = 365 * MS_PER_DAY;
 
-// Helper to create expected dates in UTC
 function utc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }
 
-// Helper to check if result is a span type
 function expectSpan(
   input: string,
   expectedStart: Date,
@@ -32,7 +29,6 @@ function expectSpan(
   expect(result.title).toBeNull();
 }
 
-// Helper with approximate duration matching
 function expectSpanApprox(
   input: string,
   expectedStart: Date,

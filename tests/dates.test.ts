@@ -1,15 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { parse, parseDate, DateResult } from '../src/index';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Helper to create expected dates in UTC
 function utc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }
 
-// Helper to check if result is a date type
 function expectDate(input: string, expectedDate: Date, options = { referenceDate }) {
   const result = parse(input, options) as DateResult;
   expect(result.type).toBe('date');
@@ -17,7 +15,6 @@ function expectDate(input: string, expectedDate: Date, options = { referenceDate
   expect(result.title).toBeNull();
 }
 
-// Helper to check parseDate helper function
 function expectParseDate(input: string, expectedDate: Date, options = { referenceDate }) {
   const result = parseDate(input, options);
   expect(result).not.toBeNull();

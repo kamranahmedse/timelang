@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parse, DateResult, FuzzyResult } from '../src/index';
 
-// Helper to create dates in UTC
 function utc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }

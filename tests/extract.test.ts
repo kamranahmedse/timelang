@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { extract } from '../src/index';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
 describe('Extract (Multiple Timespans)', () => {

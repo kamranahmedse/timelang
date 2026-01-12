@@ -1,15 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { parse, SpanResult } from '../src';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Helper to create expected dates in UTC
 function utc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }
 
-// Helper to check if result is a span type (ranges produce spans)
 function expectRange(
   input: string,
   expectedStart: Date,
@@ -47,7 +45,8 @@ describe('Range Parsing', () => {
       const result = parse('monday to friday', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 17).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2025, 1, 24).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse "march to june"', () => {
@@ -76,7 +75,8 @@ describe('Range Parsing', () => {
       const result = parse('from monday to friday', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 17).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2025, 1, 24).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse "from jan 5 to jan 20"', () => {
@@ -135,7 +135,8 @@ describe('Range Parsing', () => {
       const result = parse('between monday and friday', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 17).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2025, 1, 24).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse "between Q1 and Q3"', () => {
@@ -152,7 +153,8 @@ describe('Range Parsing', () => {
       const result = parse('monday through friday', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 17).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2025, 1, 24).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse "jan through mar"', () => {
@@ -177,7 +179,8 @@ describe('Range Parsing', () => {
       const result = parse('monday til friday', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 17).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2025, 1, 24).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse "january till march"', () => {
@@ -284,11 +287,12 @@ describe('Range Parsing', () => {
       expect(result.duration).toBe(0);
     });
 
-    it('should handle reversed range "jan 20 to jan 5"', () => {
+    it('should parse reversed range "jan 20 to jan 5" as crossing into next year', () => {
       const result = parse('jan 20 to jan 5', { referenceDate }) as SpanResult;
       expect(result.type).toBe('span');
       expect(result.start.toISOString()).toBe(utc(2025, 1, 20).toISOString());
-      expect(result.end.toISOString()).toBe(utc(2025, 1, 5).toISOString());
+      expect(result.end.toISOString()).toBe(utc(2026, 1, 5).toISOString());
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse very long range "2000 to 2100"', () => {

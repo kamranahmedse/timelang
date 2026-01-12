@@ -1,19 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { parse, FuzzyResult, DateResult, SpanResult } from '../src/index';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Duration constants
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MS_PER_WEEK = 7 * MS_PER_DAY;
 
-// Helper to create expected dates in UTC
 function utc(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-// Helper to check if result is a fuzzy type
 function expectFuzzy(
   input: string,
   expectedStart: Date,
@@ -28,7 +25,6 @@ function expectFuzzy(
   expect(result.title).toBeNull();
 }
 
-// Helper for fuzzy results where we just check type and approximate flag
 function expectFuzzyType(input: string, options = { referenceDate }) {
   const result = parse(input, options) as FuzzyResult;
   expect(result.type).toBe('fuzzy');
@@ -37,7 +33,6 @@ function expectFuzzyType(input: string, options = { referenceDate }) {
   expect(result.start.getTime()).toBeLessThanOrEqual(result.end.getTime());
 }
 
-// Helper for boundary expressions that return a specific date (beginning/start/end of X)
 function expectBoundaryDate(
   input: string,
   expectedDate: Date,

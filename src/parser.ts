@@ -7,6 +7,7 @@ import {
   convertFuzzyNode,
   convertFuzzyNodeWithoutModifier,
 } from './converters/fuzzy';
+import { MS_PER_WEEK } from './utils/constants';
 
 export interface RequiredParseOptions {
   referenceDate: Date;
@@ -126,9 +127,10 @@ function convertASTToResult(
       }
 
       if (end < start) {
-        const endMonth = end.getUTCMonth();
-        const startMonth = start.getUTCMonth();
-        if (endMonth < startMonth) {
+        const isWeekdayBased = endNode.weekday !== undefined;
+        if (isWeekdayBased) {
+          end = new Date(end.getTime() + MS_PER_WEEK);
+        } else {
           end = new Date(
             Date.UTC(
               end.getUTCFullYear() + 1,
@@ -186,6 +188,50 @@ function convertASTToResult(
   }
 }
 
+interface StrippedInput {
+  stripped: string;
+  originalPreserved: string;
+}
+
+function stripUnmatchedPunctuation(input: string): StrippedInput {
+  let result = input;
+  const originalPreserved = input;
+
+  let openParens = (result.match(/\(/g) || []).length;
+  let closeParens = (result.match(/\)/g) || []).length;
+  let openBrackets = (result.match(/\[/g) || []).length;
+  let closeBrackets = (result.match(/]/g) || []).length;
+
+  while (closeParens > openParens && result.endsWith(')')) {
+    result = result.slice(0, -1).trimEnd();
+    closeParens--;
+  }
+
+  while (closeBrackets > openBrackets && result.endsWith(']')) {
+    result = result.slice(0, -1).trimEnd();
+    closeBrackets--;
+  }
+
+  openParens = (result.match(/\(/g) || []).length;
+  closeParens = (result.match(/\)/g) || []).length;
+  while (openParens > closeParens) {
+    result = result.replace('(', '');
+    openParens--;
+  }
+
+  openBrackets = (result.match(/\[/g) || []).length;
+  closeBrackets = (result.match(/]/g) || []).length;
+  while (openBrackets > closeBrackets) {
+    result = result.replace('[', '');
+    openBrackets--;
+  }
+
+  return {
+    stripped: result.replace(/\s+/g, ' ').trim(),
+    originalPreserved,
+  };
+}
+
 export function parseInternal(
   input: string,
   options?: ParseOptions
@@ -194,8 +240,9 @@ export function parseInternal(
     return null;
   }
 
-  const originalInput = input.trim();
-  const normalized = originalInput.toLowerCase();
+  const trimmedInput = input.trim();
+  const { stripped, originalPreserved } = stripUnmatchedPunctuation(trimmedInput);
+  const normalized = stripped.toLowerCase();
 
   if (!normalized) {
     return null;
@@ -212,7 +259,7 @@ export function parseInternal(
     }
 
     const ast = parser.results[0];
-    return convertASTToResult(ast, opts, originalInput);
+    return convertASTToResult(ast, opts, originalPreserved);
   } catch {
     return null;
   }

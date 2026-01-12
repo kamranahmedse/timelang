@@ -1,17 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { parse } from '../src/index';
 
-// Fixed reference date for deterministic tests: Wednesday, January 15, 2025
+// Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Helper to check result has expected title
 function expectTitle(input: string, expectedTitle: string, options = { referenceDate }) {
   const result = parse(input, options);
   expect(result).not.toBeNull();
   expect(result?.title).toBe(expectedTitle);
 }
 
-// Helper to verify a result exists with a title (without checking exact title)
 function expectHasTitle(input: string, options = { referenceDate }) {
   const result = parse(input, options);
   expect(result).not.toBeNull();

@@ -4,7 +4,6 @@ import { parse, DateResult, SpanResult, DurationResult, FuzzyResult } from '../s
 // Fixed reference date for deterministic tests
 const referenceDate = new Date('2025-01-15T12:00:00.000Z');
 
-// Duration constants
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 describe('Edge Cases', () => {
@@ -70,7 +69,9 @@ describe('Edge Cases', () => {
     });
 
     it('should handle "next\\nfriday" (newline within)', () => {
-      parse('next\nfriday', { referenceDate });
+      const result = parse('next\nfriday', { referenceDate }) as DateResult;
+      expect(result.type).toBe('date');
+      expect(result.date.toISOString()).toBe('2025-01-17T00:00:00.000Z');
     });
 
     it('should parse "  next   friday   for   2   weeks  "', () => {
@@ -125,17 +126,19 @@ describe('Edge Cases', () => {
   });
 
   describe('Ambiguous inputs', () => {
-    it('should handle "march" (bare month)', () => {
-      const result = parse('march', { referenceDate });
-      // Could be start of march or fuzzy "all of march"
-      // Implementation decides - just verify it parses
-      expect(result).not.toBeNull();
+    it('should parse "march" (bare month) as start of March', () => {
+      const result = parse('march', { referenceDate }) as DateResult;
+      expect(result.type).toBe('date');
+      expect(result.date.getUTCMonth()).toBe(2);
+      expect(result.date.getUTCDate()).toBe(1);
     });
 
-    it('should handle "2025" (bare year)', () => {
-      const result = parse('2025', { referenceDate });
-      // Could be start of year or fuzzy "all year"
-      expect(result).not.toBeNull();
+    it('should parse "2025" (bare year) as start of year', () => {
+      const result = parse('2025', { referenceDate }) as DateResult;
+      expect(result.type).toBe('date');
+      expect(result.date.getUTCFullYear()).toBe(2025);
+      expect(result.date.getUTCMonth()).toBe(0);
+      expect(result.date.getUTCDate()).toBe(1);
     });
 
     it('should handle "monday" (bare weekday)', () => {
@@ -149,10 +152,9 @@ describe('Edge Cases', () => {
       expect(result).toBeNull();
     });
 
-    it('should handle "10-15" (could be range without context)', () => {
+    it('should return null for "10-15" (ambiguous without month context)', () => {
       const result = parse('10-15', { referenceDate });
-      // Likely null without month context
-      // Implementation decides
+      expect(result).toBeNull();
     });
   });
 
@@ -212,8 +214,9 @@ describe('Edge Cases', () => {
       expect(result.date.getUTCDate()).toBe(29);
     });
 
-    it('should handle "february 29th" with referenceDate in 2025', () => {
-      parse('february 29th', { referenceDate });
+    it('should return null for "february 29th" with referenceDate in 2025 (not a leap year)', () => {
+      const result = parse('february 29th', { referenceDate });
+      expect(result).toBeNull();
     });
   });
 
@@ -295,8 +298,12 @@ describe('Edge Cases', () => {
       expect(result.start.toISOString()).toBe(result.end.toISOString());
     });
 
-    it('should handle reversed range "jan 20 to jan 5"', () => {
-      parse('jan 20 to jan 5', { referenceDate });
+    it('should parse reversed range "jan 20 to jan 5" as crossing into next year', () => {
+      const result = parse('jan 20 to jan 5', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.start.toISOString()).toBe('2025-01-20T00:00:00.000Z');
+      expect(result.end.toISOString()).toBe('2026-01-05T00:00:00.000Z');
+      expect(result.duration).toBeGreaterThan(0);
     });
 
     it('should parse very long range "2000 to 2100"', () => {
@@ -336,8 +343,9 @@ describe('Edge Cases', () => {
       expect(r3.date.getUTCHours()).toBe(12);
     });
 
-    it('should handle "24:00"', () => {
-      parse('tomorrow at 24:00', { referenceDate });
+    it('should return null for "24:00" (invalid hour)', () => {
+      const result = parse('tomorrow at 24:00', { referenceDate });
+      expect(result).toBeNull();
     });
 
     it('should return null for "25:00"', () => {
@@ -362,14 +370,28 @@ describe('Edge Cases', () => {
       expect(result).toBeNull();
     });
 
-    it('should handle "Meeting (Jan 15" (unmatched open paren)', () => {
-      const result = parse('Meeting (Jan 15', { referenceDate });
-      // Should handle gracefully - might parse the date or return null
+    it('should handle mix "Meeting with someone on (Jan 15 at 5pm for 2 hours"', () => {
+      const result = parse('Meeting with someone on (Jan 15 at 5pm for 2 hours', { referenceDate }) as SpanResult;
+      expect(result.type).toBe('span');
+      expect(result.title).toBe('Meeting with someone');
+      expect(result.start.getUTCMonth()).toBe(0);
+      expect(result.start.getUTCDate()).toBe(15);
+      expect(result.start.getUTCHours()).toBe(17);
+      expect(result.duration).toBe(2 * 60 * 60 * 1000);
     });
 
     it('should handle "Meeting Jan 15)" (unmatched close paren)', () => {
+      // No connector between title and date, so returns null
       const result = parse('Meeting Jan 15)', { referenceDate });
-      // Should handle gracefully
+      expect(result).toBeNull();
+    });
+
+    it('should handle "Meeting on Jan 15)" (unmatched close paren with connector)', () => {
+      const result = parse('Meeting on Jan 15)', { referenceDate }) as DateResult;
+      expect(result.type).toBe('date');
+      expect(result.title).toBe('Meeting');
+      expect(result.date.getUTCMonth()).toBe(0);
+      expect(result.date.getUTCDate()).toBe(15);
     });
 
     it('should parse "Meeting (Team A) (Jan 15)" correctly', () => {
@@ -379,7 +401,9 @@ describe('Edge Cases', () => {
     });
 
     it('should handle "Meeting ((Jan 15))" (nested parens)', () => {
-      parse('Meeting ((Jan 15))', { referenceDate });
+      // Nested parens not supported, returns null
+      const result = parse('Meeting ((Jan 15))', { referenceDate });
+      expect(result).toBeNull();
     });
 
     it('should parse "Meeting (weekly) - Jan 15" correctly', () => {
