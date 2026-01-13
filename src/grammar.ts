@@ -75,6 +75,7 @@ declare var kw_yesterday: any;
 declare var kw_now: any;
 declare var kw_noon: any;
 declare var kw_midnight: any;
+declare var kw_ago: any;
 declare var ws: any;
 
 import { lexer } from './lexer.js';
@@ -128,6 +129,14 @@ interface RelativeNode {
   duration: DurationNode;
 }
 
+interface RelativeDateNode {
+  nodeType: 'relativeDate';
+  direction: 'past' | 'future';
+  duration: DurationNode;
+  baseDate?: DateNode;
+  time?: { hour: number; minute: number } | { special: string };
+}
+
 interface TitledNode {
   nodeType: 'titled';
   title: string;
@@ -175,6 +184,14 @@ const makeRelative = (direction: 'past' | 'future', duration: DurationNode): Rel
   nodeType: 'relative',
   direction,
   duration,
+});
+
+const makeRelativeDate = (direction: 'past' | 'future', duration: DurationNode, baseDate?: DateNode, time?: any): RelativeDateNode => ({
+  nodeType: 'relativeDate',
+  direction,
+  duration,
+  baseDate,
+  time,
 });
 
 const makeTitled = (title: string, expression: any, titleStart?: number, titleEnd?: number): TitledNode => ({
@@ -366,12 +383,35 @@ const grammar: Grammar = {
     {"name": "titleTextSimple", "symbols": ["titleTextSimple", (lexer.has("colon") ? {type: "colon"} : colon), "_", "titleWord"], "postprocess": d => ({ text: d[0].text + ': ' + d[3].text, start: d[0].start, end: d[3].end })},
     {"name": "expression", "symbols": ["range"], "postprocess": first},
     {"name": "expression", "symbols": ["span"], "postprocess": first},
+    {"name": "expression", "symbols": ["relativeDate"], "postprocess": first},
     {"name": "expression", "symbols": ["relative"], "postprocess": first},
     {"name": "expression", "symbols": ["fuzzy"], "postprocess": first},
     {"name": "expression", "symbols": ["forDuration"], "postprocess": first},
     {"name": "expression", "symbols": ["duration"], "postprocess": first},
     {"name": "expression", "symbols": ["date"], "postprocess": first},
     {"name": "forDuration", "symbols": ["forConnector", "_", "duration"], "postprocess": d => d[2]},
+    {"name": "relativeDate", "symbols": ["duration", "_", "agoConnector"], "postprocess": d => makeRelativeDate('past', d[0])},
+    {"name": "relativeDate", "symbols": ["wordNumber", "_", "unit", "_", "agoConnector"], "postprocess": d => makeRelativeDate('past', makeDuration(parseWordNumber(d[0]), d[2]))},
+    {"name": "relativeDate", "symbols": ["duration", "_", "agoConnector", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('past', d[0], undefined, d[6])},
+    {"name": "relativeDate", "symbols": ["duration", "_", "agoConnector", "_", "atConnector", "_", "timeWord"], "postprocess": d => makeRelativeDate('past', d[0], undefined, { special: d[6] })},
+    {"name": "relativeDate", "symbols": ["inConnector", "_", "duration"], "postprocess": d => makeRelativeDate('future', d[2])},
+    {"name": "relativeDate", "symbols": ["inConnector", "_", "wordNumber", "_", "unit"], "postprocess": d => makeRelativeDate('future', makeDuration(parseWordNumber(d[2]), d[4]))},
+    {"name": "relativeDate", "symbols": ["inConnector", "_", "duration", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('future', d[2], undefined, d[6])},
+    {"name": "relativeDate", "symbols": ["inConnector", "_", "duration", "_", "atConnector", "_", "timeWord"], "postprocess": d => makeRelativeDate('future', d[2], undefined, { special: d[6] })},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "now"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'now' }))},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "today"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'today' }))},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "tomorrow"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'tomorrow' }))},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "yesterday"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'yesterday' }))},
+    {"name": "relativeDate", "symbols": ["wordNumber", "_", "unit", "_", "fromConnector", "_", "now"], "postprocess": d => makeRelativeDate('future', makeDuration(parseWordNumber(d[0]), d[2]), makeDate({ special: 'now' }))},
+    {"name": "relativeDate", "symbols": ["wordNumber", "_", "unit", "_", "fromConnector", "_", "today"], "postprocess": d => makeRelativeDate('future', makeDuration(parseWordNumber(d[0]), d[2]), makeDate({ special: 'today' }))},
+    {"name": "relativeDate", "symbols": ["wordNumber", "_", "unit", "_", "fromConnector", "_", "tomorrow"], "postprocess": d => makeRelativeDate('future', makeDuration(parseWordNumber(d[0]), d[2]), makeDate({ special: 'tomorrow' }))},
+    {"name": "relativeDate", "symbols": ["wordNumber", "_", "unit", "_", "fromConnector", "_", "yesterday"], "postprocess": d => makeRelativeDate('future', makeDuration(parseWordNumber(d[0]), d[2]), makeDate({ special: 'yesterday' }))},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "now", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'now' }), d[8])},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "now", "_", "atConnector", "_", "timeWord"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'now' }), { special: d[8] })},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "today", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'today' }), d[8])},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "tomorrow", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'tomorrow' }), d[8])},
+    {"name": "relativeDate", "symbols": ["duration", "_", "fromConnector", "_", "yesterday", "_", "atConnector", "_", "time"], "postprocess": d => makeRelativeDate('future', d[0], makeDate({ special: 'yesterday' }), d[8])},
+    {"name": "agoConnector", "symbols": [(lexer.has("kw_ago") ? {type: "kw_ago"} : kw_ago)], "postprocess": first},
     {"name": "range", "symbols": ["date", "_", "toConnector", "_", "date"], "postprocess": d => makeRange(d[0], d[4])},
     {"name": "range", "symbols": ["fromConnector", "_", "date", "_", "toConnector", "_", "date"], "postprocess": d => makeRange(d[2], d[6])},
     {"name": "range", "symbols": ["date", "_", (lexer.has("dash") ? {type: "dash"} : dash), "_", "date"], "postprocess": d => makeRange(d[0], d[4])},

@@ -184,6 +184,91 @@ function convertASTToResult(
       return { type: 'span', start, end, duration, title };
     }
 
+    case 'relativeDate': {
+      const durationNode = expression.duration as ASTNode;
+      const baseNode = expression.baseDate as ASTNode | undefined;
+      const timeSpec = expression.time as
+        | { hour: number; minute: number }
+        | { special: string }
+        | undefined;
+
+      let baseDate: Date;
+      if (baseNode) {
+        baseDate = convertDateNode(baseNode, opts);
+      } else {
+        baseDate = new Date(opts.referenceDate);
+      }
+
+      const durationValue = durationNode.value as number;
+      const durationUnit = durationNode.unit as string;
+      const direction = expression.direction === 'past' ? -1 : 1;
+
+      let resultDate: Date;
+
+      if (durationUnit === 'month') {
+        resultDate = new Date(
+          Date.UTC(
+            baseDate.getUTCFullYear(),
+            baseDate.getUTCMonth() + direction * durationValue,
+            baseDate.getUTCDate(),
+            baseDate.getUTCHours(),
+            baseDate.getUTCMinutes()
+          )
+        );
+      } else if (durationUnit === 'year') {
+        resultDate = new Date(
+          Date.UTC(
+            baseDate.getUTCFullYear() + direction * durationValue,
+            baseDate.getUTCMonth(),
+            baseDate.getUTCDate(),
+            baseDate.getUTCHours(),
+            baseDate.getUTCMinutes()
+          )
+        );
+      } else {
+        const durationMs = convertDurationNode(durationNode);
+        resultDate = new Date(baseDate.getTime() + direction * durationMs);
+      }
+
+      if (timeSpec) {
+        if ('special' in timeSpec) {
+          if (timeSpec.special === 'noon') {
+            resultDate = new Date(
+              Date.UTC(
+                resultDate.getUTCFullYear(),
+                resultDate.getUTCMonth(),
+                resultDate.getUTCDate(),
+                12,
+                0
+              )
+            );
+          } else if (timeSpec.special === 'midnight') {
+            resultDate = new Date(
+              Date.UTC(
+                resultDate.getUTCFullYear(),
+                resultDate.getUTCMonth(),
+                resultDate.getUTCDate(),
+                0,
+                0
+              )
+            );
+          }
+        } else {
+          resultDate = new Date(
+            Date.UTC(
+              resultDate.getUTCFullYear(),
+              resultDate.getUTCMonth(),
+              resultDate.getUTCDate(),
+              timeSpec.hour,
+              timeSpec.minute
+            )
+          );
+        }
+      }
+
+      return { type: 'date', date: resultDate, title };
+    }
+
     default:
       return null;
   }
