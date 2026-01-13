@@ -374,9 +374,10 @@ range -> date _ toConnector _ date {% d => makeRange(d[0], d[4]) %}
   const end = parseMonthDayCompact(d[4].value);
   return makeRange(d[0], makeDate({ month: end.month, day: end.day }));
 } %}
-       | specialDay _ time _ toConnector _ time {% d => makeRange(makeDate({ special: d[0], time: d[2] }), makeDate({ special: d[0], time: d[6] })) %}
-       | monthDay _ time _ toConnector _ time {% d => makeRange({ ...d[0], time: d[2] }, { ...d[0], time: d[6] }) %}
-       | weekday _ time _ toConnector _ time {% d => makeRange(makeDate({ weekday: d[0], time: d[2] }), makeDate({ weekday: d[0], time: d[6] })) %}
+       | specialDay _ timeRange {% d => makeRange(makeDate({ special: d[0], time: d[2].start }), makeDate({ special: d[0], time: d[2].end })) %}
+       | weekday _ timeRange {% d => makeRange(makeDate({ weekday: d[0], time: d[2].start }), makeDate({ weekday: d[0], time: d[2].end })) %}
+       | relativeWeekday _ timeRange {% d => makeRange({ ...d[0], time: d[2].start }, { ...d[0], time: d[2].end }) %}
+       | monthDay _ timeRange {% d => makeRange({ ...d[0], time: d[2].start }, { ...d[0], time: d[2].end }) %}
        | month _ dayNumber %dash dayNumber {% d => makeRange(makeDate({ month: d[0], day: d[2] }), makeDate({ month: d[0], day: d[4] })) %}
        | dayNumber %dash dayNumber _ month {% d => makeRange(makeDate({ month: d[4], day: d[0] }), makeDate({ month: d[4], day: d[2] })) %}
        | betweenConnector _ date _ andConnector _ date {% d => makeRange(d[2], d[6]) %}
@@ -905,6 +906,12 @@ timeWord -> noon {% d => 'noon' %}
           | morning {% d => 'morning' %}
           | afternoon {% d => 'afternoon' %}
           | evening {% d => 'evening' %}
+
+# Time range: returns { start, end } for use in day+timeRange patterns
+timeRange -> time _ toConnector _ time {% d => ({ start: d[0], end: d[4] }) %}
+           | fromConnector _ time _ toConnector _ time {% d => ({ start: d[2], end: d[6] }) %}
+           | betweenConnector _ time _ andConnector _ time {% d => ({ start: d[2], end: d[6] }) %}
+           | time %dash time {% d => ({ start: d[0], end: d[2] }) %}
 
 # Terminal helpers
 number -> %integer {% d => parseInt(d[0].value, 10) %}

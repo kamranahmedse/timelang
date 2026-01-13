@@ -462,9 +462,10 @@ const grammar: Grammar = {
           const end = parseMonthDayCompact(d[4].value);
           return makeRange(d[0], makeDate({ month: end.month, day: end.day }));
         } },
-    {"name": "range", "symbols": ["specialDay", "_", "time", "_", "toConnector", "_", "time"], "postprocess": d => makeRange(makeDate({ special: d[0], time: d[2] }), makeDate({ special: d[0], time: d[6] }))},
-    {"name": "range", "symbols": ["monthDay", "_", "time", "_", "toConnector", "_", "time"], "postprocess": d => makeRange({ ...d[0], time: d[2] }, { ...d[0], time: d[6] })},
-    {"name": "range", "symbols": ["weekday", "_", "time", "_", "toConnector", "_", "time"], "postprocess": d => makeRange(makeDate({ weekday: d[0], time: d[2] }), makeDate({ weekday: d[0], time: d[6] }))},
+    {"name": "range", "symbols": ["specialDay", "_", "timeRange"], "postprocess": d => makeRange(makeDate({ special: d[0], time: d[2].start }), makeDate({ special: d[0], time: d[2].end }))},
+    {"name": "range", "symbols": ["weekday", "_", "timeRange"], "postprocess": d => makeRange(makeDate({ weekday: d[0], time: d[2].start }), makeDate({ weekday: d[0], time: d[2].end }))},
+    {"name": "range", "symbols": ["relativeWeekday", "_", "timeRange"], "postprocess": d => makeRange({ ...d[0], time: d[2].start }, { ...d[0], time: d[2].end })},
+    {"name": "range", "symbols": ["monthDay", "_", "timeRange"], "postprocess": d => makeRange({ ...d[0], time: d[2].start }, { ...d[0], time: d[2].end })},
     {"name": "range", "symbols": ["month", "_", "dayNumber", (lexer.has("dash") ? {type: "dash"} : dash), "dayNumber"], "postprocess": d => makeRange(makeDate({ month: d[0], day: d[2] }), makeDate({ month: d[0], day: d[4] }))},
     {"name": "range", "symbols": ["dayNumber", (lexer.has("dash") ? {type: "dash"} : dash), "dayNumber", "_", "month"], "postprocess": d => makeRange(makeDate({ month: d[4], day: d[0] }), makeDate({ month: d[4], day: d[2] }))},
     {"name": "range", "symbols": ["betweenConnector", "_", "date", "_", "andConnector", "_", "date"], "postprocess": d => makeRange(d[2], d[6])},
@@ -932,6 +933,10 @@ const grammar: Grammar = {
     {"name": "timeWord", "symbols": ["morning"], "postprocess": d => 'morning'},
     {"name": "timeWord", "symbols": ["afternoon"], "postprocess": d => 'afternoon'},
     {"name": "timeWord", "symbols": ["evening"], "postprocess": d => 'evening'},
+    {"name": "timeRange", "symbols": ["time", "_", "toConnector", "_", "time"], "postprocess": d => ({ start: d[0], end: d[4] })},
+    {"name": "timeRange", "symbols": ["fromConnector", "_", "time", "_", "toConnector", "_", "time"], "postprocess": d => ({ start: d[2], end: d[6] })},
+    {"name": "timeRange", "symbols": ["betweenConnector", "_", "time", "_", "andConnector", "_", "time"], "postprocess": d => ({ start: d[2], end: d[6] })},
+    {"name": "timeRange", "symbols": ["time", (lexer.has("dash") ? {type: "dash"} : dash), "time"], "postprocess": d => ({ start: d[0], end: d[2] })},
     {"name": "number", "symbols": [(lexer.has("integer") ? {type: "integer"} : integer)], "postprocess": d => parseInt(d[0].value, 10)},
     {"name": "number", "symbols": [(lexer.has("decimal") ? {type: "decimal"} : decimal)], "postprocess": d => parseFloat(d[0].value)},
     {"name": "year", "symbols": [(lexer.has("integer") ? {type: "integer"} : integer)], "postprocess":  (d, _, reject) => {
