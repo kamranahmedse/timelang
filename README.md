@@ -14,8 +14,7 @@ It takes natural language inputs and converts them into structured date, duratio
 - **Forgiving parser** — Extra spaces, mixed case, missing separators all work
 - **Edge case handling** — Year rollovers, leap years, fiscal quarters
 - **Configurable** — Reference date, fiscal year start, week start day, date format
-- **Zero dependencies** — Lightweight and fast
-- **TypeScript** — Full type definitions included
+- **TypeScript** — Typesafe with full type definitions
 
 ## Installation
 

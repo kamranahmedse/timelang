@@ -116,7 +116,8 @@ function convertASTToResult(
           end = new Date(Date.UTC(year, month + 1, 0));
         }
         if (endNode.yearOnly) {
-          const year = endNode.year as number;
+          const year =
+            (endNode.year as number) ?? opts.referenceDate.getUTCFullYear();
           end = new Date(Date.UTC(year, 11, 31));
         }
       } else if (endNode.nodeType === 'fuzzy') {
@@ -215,14 +216,14 @@ function stripUnmatchedPunctuation(input: string): StrippedInput {
   openParens = (result.match(/\(/g) || []).length;
   closeParens = (result.match(/\)/g) || []).length;
   while (openParens > closeParens) {
-    result = result.replace('(', '');
+    result = result.replace(/\(/, '');
     openParens--;
   }
 
   openBrackets = (result.match(/\[/g) || []).length;
   closeBrackets = (result.match(/]/g) || []).length;
   while (openBrackets > closeBrackets) {
-    result = result.replace('[', '');
+    result = result.replace(/\[/, '');
     openBrackets--;
   }
 

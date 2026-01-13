@@ -48,7 +48,7 @@ export function getHalfDates(
   const endMonth = (halfStartMonth + 6) % 12;
 
   let endYear = startYear;
-  if (endMonth < halfStartMonth || endMonth === halfStartMonth) {
+  if (endMonth <= halfStartMonth) {
     endYear++;
   }
 
