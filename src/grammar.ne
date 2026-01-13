@@ -457,6 +457,14 @@ relativeDate -> duration _ agoConnector {% d => makeRelativeDate('past', d[0]) %
               | wordNumber _ weekday _ fromConnector _ now {% d => ({ ...makeRelativeDate('future', makeDuration(parseWordNumber(d[0]), 'weekdayOccurrence')), weekday: d[2] }) %}
               | number _ weekday _ agoConnector {% d => ({ ...makeRelativeDate('past', makeDuration(d[0], 'weekdayOccurrence')), weekday: d[2] }) %}
               | wordNumber _ weekday _ agoConnector {% d => ({ ...makeRelativeDate('past', makeDuration(parseWordNumber(d[0]), 'weekdayOccurrence')), weekday: d[2] }) %}
+              | weekday _ inConnector _ duration {% d => makeRelativeDate('future', d[4], makeDate({ weekday: d[0] })) %}
+              | weekday _ inConnector _ wordNumber _ unit {% d => makeRelativeDate('future', makeDuration(parseWordNumber(d[4]), d[6]), makeDate({ weekday: d[0] })) %}
+              | weekday _ duration _ agoConnector {% d => makeRelativeDate('past', d[2], makeDate({ weekday: d[0], relative: 'last' })) %}
+              | weekday _ wordNumber _ unit _ agoConnector {% d => makeRelativeDate('past', makeDuration(parseWordNumber(d[2]), d[4]), makeDate({ weekday: d[0], relative: 'last' })) %}
+              | timeWord _ inConnector _ duration {% d => makeRelativeDate('future', d[4], undefined, { special: d[0] }) %}
+              | timeWord _ inConnector _ wordNumber _ unit {% d => makeRelativeDate('future', makeDuration(parseWordNumber(d[4]), d[6]), undefined, { special: d[0] }) %}
+              | timeWord _ duration _ agoConnector {% d => makeRelativeDate('past', d[2], undefined, { special: d[0] }) %}
+              | timeWord _ wordNumber _ unit _ agoConnector {% d => makeRelativeDate('past', makeDuration(parseWordNumber(d[2]), d[4]), undefined, { special: d[0] }) %}
 
 # Fuzzy period expressions: "Q1", "early march", "end of january"
 # Note: month non-terminal already returns a number from parseMonth, so don't call parseMonth again

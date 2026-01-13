@@ -261,6 +261,48 @@ describe('Relative Date Patterns', () => {
     });
   });
 
+  describe('Weekday/time with offset expressions', () => {
+    it('should parse "monday in two weeks" as 2 weeks from the next monday', () => {
+      // Reference: Wednesday Jan 15, 2025
+      // Next monday is Jan 20, + 2 weeks = Feb 3
+      expectDate('monday in two weeks', utc(2025, 2, 3));
+    });
+
+    it('should parse "friday in 1 week" as 1 week from next friday', () => {
+      // Reference: Wednesday Jan 15, 2025
+      // Next friday is Jan 17, + 1 week = Jan 24
+      expectDate('friday in 1 week', utc(2025, 1, 24));
+    });
+
+    it('should parse "midnight two days ago" as 2 days ago at midnight', () => {
+      expectDate('midnight two days ago', utc(2025, 1, 13, 0, 0));
+    });
+
+    it('should parse "noon 3 days ago" as 3 days ago at noon', () => {
+      expectDate('noon 3 days ago', utc(2025, 1, 12, 12, 0));
+    });
+
+    it('should parse "midnight in 3 days" as 3 days from now at midnight', () => {
+      expectDate('midnight in 3 days', utc(2025, 1, 18, 0, 0));
+    });
+
+    it('should parse "noon in a week" as 1 week from now at noon', () => {
+      expectDate('noon in a week', utc(2025, 1, 22, 12, 0));
+    });
+
+    it('should parse "tuesday in 3 weeks" as 3 weeks from next tuesday', () => {
+      // Reference: Wednesday Jan 15, 2025
+      // Next tuesday is Jan 21, + 3 weeks = Feb 11
+      expectDate('tuesday in 3 weeks', utc(2025, 2, 11));
+    });
+
+    it('should parse "sunday two weeks ago" as 2 weeks before last sunday', () => {
+      // Reference: Wednesday Jan 15, 2025
+      // Last sunday is Jan 12, - 2 weeks = Dec 29, 2024
+      expectDate('sunday two weeks ago', utc(2024, 12, 29));
+    });
+  });
+
   describe('Edge cases', () => {
     it('should parse "0 days from now" as today', () => {
       expectDate('0 days from now', utc(2025, 1, 15, 12, 0));
