@@ -23,10 +23,10 @@ declare var monthDayCompact: any;
 declare var kw_ytd: any;
 declare var comma: any;
 declare var abbreviatedDuration: any;
+declare var ordinal: any;
 declare var unit: any;
 declare var time: any;
 declare var ampm: any;
-declare var ordinal: any;
 declare var month: any;
 declare var weekday: any;
 declare var season: any;
@@ -694,6 +694,7 @@ const grammar: Grammar = {
     {"name": "date", "symbols": ["specialDay"], "postprocess": d => makeDate({ special: d[0] })},
     {"name": "date", "symbols": ["ordinalWeekdayOfMonth"], "postprocess": first},
     {"name": "date", "symbols": ["relativeWeekday"], "postprocess": first},
+    {"name": "date", "symbols": ["relativeTimeOfDay"], "postprocess": first},
     {"name": "date", "symbols": ["weekday"], "postprocess": d => makeDate({ weekday: d[0] })},
     {"name": "date", "symbols": ["monthDayYear"], "postprocess": first},
     {"name": "date", "symbols": ["monthDay"], "postprocess": first},
@@ -728,6 +729,8 @@ const grammar: Grammar = {
     {"name": "timeOnly", "symbols": ["timeWord"], "postprocess": d => makeDate({ time: { special: d[0] }, timeOnly: true })},
     {"name": "dayOnly", "symbols": ["theConnector", "_", "dayNumber"], "postprocess": d => makeDate({ day: d[2], dayOnly: true })},
     {"name": "dayOnly", "symbols": ["onConnector", "_", "theConnector", "_", "dayNumber"], "postprocess": d => makeDate({ day: d[4], dayOnly: true })},
+    {"name": "dayOnly", "symbols": ["onConnector", "_", "dayNumber"], "postprocess": d => makeDate({ day: d[2], dayOnly: true })},
+    {"name": "dayOnly", "symbols": [(lexer.has("ordinal") ? {type: "ordinal"} : ordinal)], "postprocess": d => makeDate({ day: parseOrdinal(d[0].value), dayOnly: true })},
     {"name": "eodCobDate", "symbols": ["eodKeyword"], "postprocess": d => makeDate({ special: 'today', time: { hour: 23, minute: 59 } })},
     {"name": "eodCobDate", "symbols": ["cobKeyword"], "postprocess": d => makeDate({ special: 'today', time: { hour: 17, minute: 0 } })},
     {"name": "eodCobDate", "symbols": ["eodKeyword", "_", "weekday"], "postprocess": d => makeDate({ weekday: d[2], time: { hour: 23, minute: 59 } })},
@@ -737,6 +740,15 @@ const grammar: Grammar = {
     {"name": "eodCobDate", "symbols": ["endConnector", "_", "ofConnector", "_", "dayUnit", "_", "specialDay"], "postprocess": d => makeDate({ special: d[6], time: { hour: 23, minute: 59 } })},
     {"name": "eodCobDate", "symbols": ["closeKeyword", "_", "ofConnector", "_", "businessKeyword", "_", "weekday"], "postprocess": d => makeDate({ weekday: d[6], time: { hour: 17, minute: 0 } })},
     {"name": "eodCobDate", "symbols": ["closeKeyword", "_", "ofConnector", "_", "businessKeyword", "_", "specialDay"], "postprocess": d => makeDate({ special: d[6], time: { hour: 17, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["startConnector", "_", "ofConnector", "_", "today"], "postprocess": d => makeDate({ special: 'today', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["startConnector", "_", "ofConnector", "_", "tomorrow"], "postprocess": d => makeDate({ special: 'tomorrow', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["startConnector", "_", "ofConnector", "_", "yesterday"], "postprocess": d => makeDate({ special: 'yesterday', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["beginningConnector", "_", "ofConnector", "_", "today"], "postprocess": d => makeDate({ special: 'today', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["beginningConnector", "_", "ofConnector", "_", "tomorrow"], "postprocess": d => makeDate({ special: 'tomorrow', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["beginningConnector", "_", "ofConnector", "_", "yesterday"], "postprocess": d => makeDate({ special: 'yesterday', time: { hour: 0, minute: 0 } })},
+    {"name": "eodCobDate", "symbols": ["endConnector", "_", "ofConnector", "_", "today"], "postprocess": d => makeDate({ special: 'today', time: { hour: 23, minute: 59 } })},
+    {"name": "eodCobDate", "symbols": ["endConnector", "_", "ofConnector", "_", "tomorrow"], "postprocess": d => makeDate({ special: 'tomorrow', time: { hour: 23, minute: 59 } })},
+    {"name": "eodCobDate", "symbols": ["endConnector", "_", "ofConnector", "_", "yesterday"], "postprocess": d => makeDate({ special: 'yesterday', time: { hour: 23, minute: 59 } })},
     {"name": "specialDay", "symbols": ["today"], "postprocess": d => 'today'},
     {"name": "specialDay", "symbols": ["tomorrow"], "postprocess": d => 'tomorrow'},
     {"name": "specialDay", "symbols": ["yesterday"], "postprocess": d => 'yesterday'},
@@ -752,6 +764,9 @@ const grammar: Grammar = {
     {"name": "relativeWeekday", "symbols": ["thisRelative", "_", "weekday"], "postprocess": d => makeDate({ weekday: d[2], relative: 'this' })},
     {"name": "relativeWeekday", "symbols": ["comingRelative", "_", "weekday"], "postprocess": d => makeDate({ weekday: d[2], relative: 'next' })},
     {"name": "relativeWeekday", "symbols": ["previousRelative", "_", "weekday"], "postprocess": d => makeDate({ weekday: d[2], relative: 'last' })},
+    {"name": "relativeTimeOfDay", "symbols": ["thisRelative", "_", "morning"], "postprocess": d => makeDate({ special: 'today', time: { special: 'morning' } })},
+    {"name": "relativeTimeOfDay", "symbols": ["thisRelative", "_", "afternoon"], "postprocess": d => makeDate({ special: 'today', time: { special: 'afternoon' } })},
+    {"name": "relativeTimeOfDay", "symbols": ["thisRelative", "_", "evening"], "postprocess": d => makeDate({ special: 'today', time: { special: 'evening' } })},
     {"name": "relativePeriod", "symbols": ["nextRelative", "_", "unit"], "postprocess": d => makeDate({ relative: 'next', period: d[2] })},
     {"name": "relativePeriod", "symbols": ["lastRelative", "_", "unit"], "postprocess": d => makeDate({ relative: 'last', period: d[2] })},
     {"name": "relativePeriod", "symbols": ["thisRelative", "_", "unit"], "postprocess": d => makeDate({ relative: 'this', period: d[2] })},

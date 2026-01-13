@@ -583,4 +583,71 @@ describe('Single Date Parsing', () => {
       expectDate('this friday evening', utc(2025, 1, 17, 18, 0));
     });
   });
+
+  describe('Start/end of day patterns', () => {
+    it('should parse "start of today" as today at 00:00', () => {
+      expectDate('start of today', utc(2025, 1, 15, 0, 0));
+    });
+
+    it('should parse "end of today" as today at 23:59', () => {
+      expectDate('end of today', utc(2025, 1, 15, 23, 59));
+    });
+
+    it('should parse "beginning of tomorrow" as tomorrow at 00:00', () => {
+      expectDate('beginning of tomorrow', utc(2025, 1, 16, 0, 0));
+    });
+
+    it('should parse "end of tomorrow" as tomorrow at 23:59', () => {
+      expectDate('end of tomorrow', utc(2025, 1, 16, 23, 59));
+    });
+
+    it('should parse "start of yesterday" as yesterday at 00:00', () => {
+      expectDate('start of yesterday', utc(2025, 1, 14, 0, 0));
+    });
+
+    it('should parse "end of yesterday" as yesterday at 23:59', () => {
+      expectDate('end of yesterday', utc(2025, 1, 14, 23, 59));
+    });
+  });
+
+  describe('This morning/afternoon/evening patterns', () => {
+    it('should parse "this morning" as today at 9:00', () => {
+      expectDate('this morning', utc(2025, 1, 15, 9, 0));
+    });
+
+    it('should parse "this afternoon" as today at 14:00', () => {
+      expectDate('this afternoon', utc(2025, 1, 15, 14, 0));
+    });
+
+    it('should parse "this evening" as today at 18:00', () => {
+      expectDate('this evening', utc(2025, 1, 15, 18, 0));
+    });
+  });
+
+  describe('Bare ordinal day patterns', () => {
+    it('should parse "4th" as the 4th of next month (since Jan 4 has passed)', () => {
+      // Reference is Jan 15, so 4th has passed -> Feb 4
+      expectDate('4th', utc(2025, 2, 4));
+    });
+
+    it('should parse "20th" as the 20th of current month (since Jan 20 is future)', () => {
+      expectDate('20th', utc(2025, 1, 20));
+    });
+
+    it('should parse "1st" as the 1st of next month', () => {
+      expectDate('1st', utc(2025, 2, 1));
+    });
+
+    it('should parse "31st" as the 31st of current month', () => {
+      expectDate('31st', utc(2025, 1, 31));
+    });
+
+    it('should parse "on 15th" as the 15th of current month', () => {
+      expectDate('on 15th', utc(2025, 1, 15));
+    });
+
+    it('should parse "on 20th" as the 20th of current month', () => {
+      expectDate('on 20th', utc(2025, 1, 20));
+    });
+  });
 });

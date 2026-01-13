@@ -624,6 +624,7 @@ abbreviatedDuration -> %abbreviatedDuration {% d => {
 date -> specialDay {% d => makeDate({ special: d[0] }) %}
       | ordinalWeekdayOfMonth {% first %}
       | relativeWeekday {% first %}
+      | relativeTimeOfDay {% first %}
       | weekday {% d => makeDate({ weekday: d[0] }) %}
       | monthDayYear {% first %}
       | monthDay {% first %}
@@ -669,9 +670,11 @@ yearOnly -> year {% (d, _, reject) => {
 timeOnly -> time {% d => makeDate({ time: d[0], timeOnly: true }) %}
           | timeWord {% d => makeDate({ time: { special: d[0] }, timeOnly: true }) %}
 
-# Day only: "the 15th", "on the 20th" (uses reference month/year, with smart month selection)
+# Day only: "the 15th", "on the 20th", "on 15th", "4th" (uses reference month/year, with smart month selection)
 dayOnly -> theConnector _ dayNumber {% d => makeDate({ day: d[2], dayOnly: true }) %}
          | onConnector _ theConnector _ dayNumber {% d => makeDate({ day: d[4], dayOnly: true }) %}
+         | onConnector _ dayNumber {% d => makeDate({ day: d[2], dayOnly: true }) %}
+         | %ordinal {% d => makeDate({ day: parseOrdinal(d[0].value), dayOnly: true }) %}
 
 # EOD/COB patterns
 eodCobDate -> eodKeyword {% d => makeDate({ special: 'today', time: { hour: 23, minute: 59 } }) %}
@@ -683,6 +686,15 @@ eodCobDate -> eodKeyword {% d => makeDate({ special: 'today', time: { hour: 23, 
             | endConnector _ ofConnector _ dayUnit _ specialDay {% d => makeDate({ special: d[6], time: { hour: 23, minute: 59 } }) %}
             | closeKeyword _ ofConnector _ businessKeyword _ weekday {% d => makeDate({ weekday: d[6], time: { hour: 17, minute: 0 } }) %}
             | closeKeyword _ ofConnector _ businessKeyword _ specialDay {% d => makeDate({ special: d[6], time: { hour: 17, minute: 0 } }) %}
+            | startConnector _ ofConnector _ today {% d => makeDate({ special: 'today', time: { hour: 0, minute: 0 } }) %}
+            | startConnector _ ofConnector _ tomorrow {% d => makeDate({ special: 'tomorrow', time: { hour: 0, minute: 0 } }) %}
+            | startConnector _ ofConnector _ yesterday {% d => makeDate({ special: 'yesterday', time: { hour: 0, minute: 0 } }) %}
+            | beginningConnector _ ofConnector _ today {% d => makeDate({ special: 'today', time: { hour: 0, minute: 0 } }) %}
+            | beginningConnector _ ofConnector _ tomorrow {% d => makeDate({ special: 'tomorrow', time: { hour: 0, minute: 0 } }) %}
+            | beginningConnector _ ofConnector _ yesterday {% d => makeDate({ special: 'yesterday', time: { hour: 0, minute: 0 } }) %}
+            | endConnector _ ofConnector _ today {% d => makeDate({ special: 'today', time: { hour: 23, minute: 59 } }) %}
+            | endConnector _ ofConnector _ tomorrow {% d => makeDate({ special: 'tomorrow', time: { hour: 23, minute: 59 } }) %}
+            | endConnector _ ofConnector _ yesterday {% d => makeDate({ special: 'yesterday', time: { hour: 23, minute: 59 } }) %}
 
 # Special days
 specialDay -> today {% d => 'today' %}
@@ -704,6 +716,11 @@ relativeWeekday -> nextRelative _ weekday {% d => makeDate({ weekday: d[2], rela
                  | thisRelative _ weekday {% d => makeDate({ weekday: d[2], relative: 'this' }) %}
                  | comingRelative _ weekday {% d => makeDate({ weekday: d[2], relative: 'next' }) %}
                  | previousRelative _ weekday {% d => makeDate({ weekday: d[2], relative: 'last' }) %}
+
+# Relative time-of-day: "this morning", "this afternoon", "this evening"
+relativeTimeOfDay -> thisRelative _ morning {% d => makeDate({ special: 'today', time: { special: 'morning' } }) %}
+                   | thisRelative _ afternoon {% d => makeDate({ special: 'today', time: { special: 'afternoon' } }) %}
+                   | thisRelative _ evening {% d => makeDate({ special: 'today', time: { special: 'evening' } }) %}
 
 # Relative periods: "next week", "last month"
 relativePeriod -> nextRelative _ unit {% d => makeDate({ relative: 'next', period: d[2] }) %}
