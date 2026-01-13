@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+
+@theme {
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+}
+
+html {
+  scroll-padding-top: 5rem;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-display: block;
+}
+
+::selection {
+  background-color: rgb(250 204 21 / 0.3);
+  color: white;
+}
