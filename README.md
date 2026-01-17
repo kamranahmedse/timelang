@@ -16,20 +16,12 @@
   - [Features](#features)
   - [Installation](#installation)
   - [API Reference](#api-reference)
-  - [API](#api)
-    - [parseDate](#parsedateinput-options)
-    - [parse](#parseinput-options)
-    - [parseDuration](#parsedurationinput-options)
-    - [parseSpan](#parsespaninput-options)
-    - [scan](#scaninput-options)
   - [Options](#options)
   - [TypeScript Types](#typescript-types)
 - [@timelang/suggest](#timelangsuggest)
   - [Features](#suggest-features)
   - [Installation](#suggest-installation)
-  - [API](#suggest-api)
-    - [suggest](#suggestinput-options)
-    - [suggestTime](#suggesttimeinput-options)
+  - [API Reference](#suggest-api)
   - [Options](#suggest-options)
   - [TypeScript Types](#suggest-typescript-types)
 - [License](#license)
@@ -98,8 +90,6 @@ suggestTime('9');
 //   ...
 // ]
 ```
-
----
 
 # @timelang/parse
 
@@ -545,8 +535,6 @@ interface ScanMatch {
 }
 ```
 
----
-
 # @timelang/suggest
 
 Autocomplete suggestions for time expressions. Perfect for building date/time picker inputs with natural language support.
@@ -751,8 +739,6 @@ type SuggestMode = 'date' | 'datetime' | 'time';
 type SortPreference = 'closest' | 'future' | 'past';
 type TimeFormat = '12h' | '24h';
 ```
-
----
 
 ## License
 
