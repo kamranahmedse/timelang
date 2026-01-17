@@ -1,0 +1,52 @@
+{
+  "name": "@timelang/parse",
+  "version": "0.5.1",
+  "description": "Parse natural language time expressions into structured data",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm run compile:grammar && tsup",
+    "compile:grammar": "node compile-grammar.mjs src/grammar.ne src/grammar.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "date",
+    "time",
+    "parser",
+    "natural-language",
+    "nlp",
+    "duration",
+    "timespan",
+    "range"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1"
+  },
+  "devDependencies": {
+    "@types/moo": "^0.5.9",
+    "@types/nearley": "^2.11.5",
+    "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^2.1.9",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

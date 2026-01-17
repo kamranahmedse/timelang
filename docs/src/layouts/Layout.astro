@@ -1,0 +1,48 @@
+---
+interface Props {
+  title: string
+  description?: string
+}
+
+const { title, description = "Parse natural language time expressions into dates, durations, and ranges. Supports inputs like 'tomorrow at 3pm', 'next friday', 'jan 5 to jan 20', and 'mid Q1'. TypeScript-ready." } = Astro.props
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content="timelang, natural language, time parser, date parser, javascript, typescript, npm, date parsing, duration parser, time range, nlp dates" />
+    <meta name="author" content="timelang" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://timelang.dev/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content="https://timelang.dev/" />
+    <meta property="og:site_name" content="timelang" />
+    <meta property="og:image" content="https://timelang.dev/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://timelang.dev/og-image.png" />
+
+    <meta name="theme-color" content="#09090b" />
+  </head>
+  <body class="bg-zinc-950 text-zinc-100 font-mono antialiased">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import "../styles/global.css";
+</style>

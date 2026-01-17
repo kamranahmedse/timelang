@@ -2,7 +2,7 @@
 
 >Parse natural language time expressions into dates, durations, and ranges.
 
-[![npm version](https://img.shields.io/npm/v/timelang)](https://www.npmjs.com/package/timelang)
+[![npm version](https://img.shields.io/npm/v/@timelang/parse)](https://www.npmjs.com/package/@timelang/parse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Docs](https://img.shields.io/badge/docs-timelang.dev-purple)](https://timelang.dev)
 
@@ -22,13 +22,13 @@ It takes natural language inputs and converts them into structured date, duratio
 Install the package using your preferred package manager:
 
 ```bash
-npm install timelang
+npm install @timelang/parse
 ```
 
 Use any of the provided methods to parse time expressions:
 
 ```javascript
-import { parse, parseDate, parseDuration, parseSpan, scan } from 'timelang';
+import { parse, parseDate, parseDuration, parseSpan, scan } from '@timelang/parse';
 
 parseDate('next friday at 3pm');        // Date
 parseDuration('2h 30m');                // 9000000 (milliseconds)
@@ -435,6 +435,7 @@ interface DurationResult {
   type: 'duration';
   duration: number; // milliseconds
   title: string | null;
+  approximate?: boolean; // true for expressions like "about 2 weeks"
 }
 
 interface SpanResult {

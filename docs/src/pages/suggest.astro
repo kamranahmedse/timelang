@@ -1,0 +1,232 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Footer from '../components/Footer.astro'
+import Hero from '../components/Hero.astro'
+import TabNav from '../components/TabNav.astro'
+import { SuggestDemo, MatchingExample } from '../components/SuggestDemo'
+import { CodeBlock } from '../components/CodeBlock'
+---
+
+<Layout title="Smart Autocomplete for Date & Time Inputs - timelang">
+  <TabNav active="suggest" />
+  <main class="px-4 sm:px-6">
+    <div class="max-w-3xl mx-auto">
+      <Hero
+        title="Smart autocomplete"
+        subtitle="Intelligent suggestions for date and time inputs"
+      >
+        <SuggestDemo client:load />
+      </Hero>
+
+      <div class="space-y-16 pb-12">
+        <!-- Install -->
+        <section class="space-y-4">
+          <CodeBlock code="npm install @timelang/suggest" language="bash" client:load />
+        </section>
+
+        <!-- Smart Matching -->
+        <section class="space-y-6">
+          <h2 class="text-xl font-bold text-zinc-100">Smart Matching</h2>
+          <p class="text-sm text-zinc-400">
+            Handles abbreviations and partial matches intelligently.
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <MatchingExample client:load input="tom" result="tomorrow" />
+            <MatchingExample client:load input="mon" result="next monday" />
+            <MatchingExample client:load input="5 day" result="5 days ago, 5 days from now" />
+            <MatchingExample client:load input="next" result="next monday, next tuesday..." />
+          </div>
+        </section>
+
+        <!-- API -->
+        <section id="docs" class="space-y-6">
+          <h2 class="text-xl font-bold text-zinc-100">API</h2>
+
+          <div class="space-y-4">
+            <h3 class="font-semibold text-zinc-200">suggest(input, options?)</h3>
+            <p class="text-sm text-zinc-400">
+              Returns suggestions with pre-resolved dates based on user input.
+            </p>
+            <CodeBlock code={`import { suggest } from '@timelang/suggest'
+
+const suggestions = suggest('tom')
+// → [
+//   { label: 'tomorrow', date: Date },
+//   { label: 'tomorrow morning', date: Date },
+//   { label: 'tomorrow afternoon', date: Date },
+//   ...
+// ]
+
+// Each suggestion includes:
+// - label: The suggestion text
+// - date: The resolved Date object`} language="typescript" client:load />
+          </div>
+
+          <div class="space-y-4 mt-8">
+            <h3 class="font-semibold text-zinc-200">suggestTime(input, options?)</h3>
+            <p class="text-sm text-zinc-400">
+              Returns time-only suggestions for dedicated time input fields.
+            </p>
+            <CodeBlock code={`import { suggestTime } from '@timelang/suggest'
+
+const suggestions = suggestTime('9')
+// → [
+//   { label: '09:00 am', hour: 9, minute: 0, period: 'am' },
+//   { label: '09:00 pm', hour: 9, minute: 0, period: 'pm' },
+//   ...
+// ]
+
+// Supports various input formats:
+suggestTime('930')   // 9:30
+suggestTime('750pm') // 7:50 PM
+suggestTime('14')    // 14:00 (2 PM)`} language="typescript" client:load />
+          </div>
+        </section>
+
+        <!-- Options -->
+        <section class="space-y-6">
+          <h2 class="text-xl font-bold text-zinc-100">Options</h2>
+
+          <CodeBlock code={`suggest('next', {
+  referenceDate: new Date(),  // Base date for resolving expressions
+  limit: 5,                   // Maximum suggestions (default: 5)
+  mode: 'datetime',           // 'date' | 'datetime' | 'time'
+  minDate: new Date(),        // Filter out dates before this
+  maxDate: new Date(),        // Filter out dates after this
+  sortPreference: 'closest',  // 'closest' | 'future' | 'past'
+})`} language="typescript" client:load />
+
+          <div class="space-y-8 mt-8">
+            <div class="space-y-3">
+              <h3 class="font-semibold text-zinc-200">mode</h3>
+              <p class="text-sm text-zinc-400">
+                Controls which types of suggestions are returned.
+              </p>
+              <CodeBlock code={`// Only date suggestions (excludes time-only like "in 2 hours")
+suggest('next', { mode: 'date' })
+
+// Only time suggestions (excludes date-only like "next week")
+suggest('morning', { mode: 'time' })
+
+// All suggestions (default)
+suggest('next', { mode: 'datetime' })`} language="typescript" client:load />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-zinc-200">minDate / maxDate</h3>
+              <p class="text-sm text-zinc-400">
+                Constrain suggestions to a date range.
+              </p>
+              <CodeBlock code={`// Future dates only
+suggest('', { minDate: new Date() })
+
+// Past dates only
+suggest('', { maxDate: new Date() })
+
+// Within a specific range
+suggest('', {
+  minDate: new Date('2025-01-01'),
+  maxDate: new Date('2025-12-31')
+})`} language="typescript" client:load />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-zinc-200">sortPreference</h3>
+              <p class="text-sm text-zinc-400">
+                Controls how suggestions are ordered.
+              </p>
+              <CodeBlock code={`// Closest to reference date first (default)
+suggest('', { sortPreference: 'closest' })
+
+// Future dates first, then chronological
+suggest('', { sortPreference: 'future' })
+
+// Past dates first, then reverse chronological
+suggest('', { sortPreference: 'past' })`} language="typescript" client:load />
+            </div>
+          </div>
+        </section>
+
+        <!-- Time Options -->
+        <section class="space-y-6">
+          <h2 class="text-xl font-bold text-zinc-100">Time Options</h2>
+          <p class="text-sm text-zinc-400">Options for the <code class="text-zinc-300">suggestTime</code> function.</p>
+
+          <CodeBlock code={`suggestTime('9', {
+  step: 15,       // Minute intervals (default: 15)
+  limit: 10,      // Maximum suggestions (default: 10)
+  format: '12h',  // '12h' or '24h' (default: '12h')
+})`} language="typescript" client:load />
+
+          <div class="space-y-8 mt-8">
+            <div class="space-y-3">
+              <h3 class="font-semibold text-zinc-200">step</h3>
+              <p class="text-sm text-zinc-400">
+                Controls the minute intervals for suggestions.
+              </p>
+              <CodeBlock code={`suggestTime('9', { step: 30 })
+// → 9:00, 9:30, 10:00...
+
+suggestTime('9', { step: 5 })
+// → 9:00, 9:05, 9:10...`} language="typescript" client:load />
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-semibold text-zinc-200">format</h3>
+              <p class="text-sm text-zinc-400">
+                Controls the output format and returned values.
+              </p>
+              <CodeBlock code={`// 12-hour format (default)
+suggestTime('9', { format: '12h' })
+// → { label: '09:00 am', hour: 9, minute: 0, period: 'am' }
+
+// 24-hour format
+suggestTime('9', { format: '24h' })
+// → { label: '09:00', hour: 9, minute: 0 }`} language="typescript" client:load />
+            </div>
+          </div>
+        </section>
+
+        <!-- Types -->
+        <section class="space-y-6">
+          <h2 class="text-xl font-bold text-zinc-100">Types</h2>
+          <CodeBlock code={`// suggest() types
+interface Suggestion {
+  label: string
+  date: Date
+}
+
+type SuggestMode = 'date' | 'datetime' | 'time'
+type SortPreference = 'closest' | 'future' | 'past'
+
+interface SuggestOptions {
+  referenceDate?: Date
+  limit?: number
+  mode?: SuggestMode
+  minDate?: Date
+  maxDate?: Date
+  sortPreference?: SortPreference
+}
+
+// suggestTime() types
+interface TimeSuggestion {
+  label: string
+  hour: number       // 1-12 for '12h', 0-23 for '24h'
+  minute: number
+  period?: 'am' | 'pm'  // Only present when format is '12h'
+}
+
+type TimeFormat = '12h' | '24h'
+
+interface SuggestTimeOptions {
+  step?: number      // Minute intervals (default: 15)
+  limit?: number     // Max suggestions (default: 10)
+  format?: TimeFormat  // '12h' or '24h' (default: '12h')
+}`} language="typescript" client:load />
+        </section>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Layout>

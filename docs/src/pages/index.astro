@@ -1,0 +1,31 @@
+---
+import Layout from '../layouts/Layout.astro'
+import TabNav from '../components/TabNav.astro'
+import Footer from '../components/Footer.astro'
+import Hero from '../components/Hero.astro'
+import { HeroDemo } from '../components/HeroDemo'
+import { ExamplesSection } from '../components/ExamplesSection'
+import { InstallSection } from '../components/InstallSection'
+import { DocsSection } from '../components/DocsSection'
+import { PlaygroundSection } from '../components/PlaygroundSection'
+---
+
+<Layout title="timelang - Natural Language Time Parser for JavaScript">
+  <TabNav active="parse" />
+  <main class="px-4 sm:px-6">
+    <div class="max-w-3xl mx-auto">
+      <Hero
+        title="Parse time, naturally"
+        subtitle="Human-friendly time expressions → JavaScript Dates"
+      >
+        <HeroDemo client:load />
+      </Hero>
+
+      <ExamplesSection client:load />
+      <InstallSection client:load />
+      <DocsSection client:load />
+      <PlaygroundSection client:load />
+    </div>
+  </main>
+  <Footer />
+</Layout>
