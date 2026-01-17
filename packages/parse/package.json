@@ -1,6 +1,6 @@
 {
   "name": "@timelang/parse",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Parse natural language time expressions into structured data",
   "type": "module",
   "main": "./dist/index.cjs",
